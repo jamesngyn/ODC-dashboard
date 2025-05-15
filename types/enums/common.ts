@@ -1,0 +1,13 @@
+export enum ApiErrorCode {
+  // Các mã lỗi chung
+  INVALID_REQUEST = "INVALID_REQUEST",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+
+  // Lỗi xác thực
+  INVALID_CREDENTIALS = "INVALID_CREDENTIALS",
+  TOKEN_EXPIRED = "TOKEN_EXPIRED",
+  TOKEN_INVALID = "TOKEN_INVALID",
+
+  // Lỗi dữ liệu
+}
