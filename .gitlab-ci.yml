@@ -13,7 +13,7 @@ DeployDev:
     - echo "$SSH_KEY_DEV" > ~/.ssh/id_rsa
     - chmod 700 ~/.ssh/id_rsa
     - echo "$ENV_DEV" > .env
-    - rsync --progress -avzh -e "ssh " --rsync-path="sudo rsync" --exclude='.git' .  ubuntu@$IP_TEST_SERVER:~/nextjs-base
-    - ssh ubuntu@$IP_TEST_SERVER "cd nextjs-base && yarn && yarn build && pm2 delete nextjs-base && pm2 start --name "nextjs-base" --force npm -- start"
+    - rsync --progress -avzh -e "ssh " --rsync-path="sudo rsync" --exclude='.git' .  ubuntu@$IP_TEST_SERVER:~/vexere
+    - ssh ubuntu@$IP_TEST_SERVER "cd vexere && yarn && yarn build && pm2 delete vexere && pm2 start --name "vexere" --force npm -- start"
 
 #or deploy with docker

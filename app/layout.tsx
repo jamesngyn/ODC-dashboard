@@ -4,9 +4,9 @@ import type { Metadata } from "next/types";
 import { Provider } from "@/components/provider";
 
 export const metadata: Metadata = {
-  title: "chan",
+  title: "Neit",
   generator: "Next.js",
-  applicationName: "chan",
+  applicationName: "Neit",
   referrer: "origin-when-cross-origin",
   keywords: [
     "Next.js",
@@ -25,20 +25,20 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://chan.vercel.app"),
+  metadataBase: new URL("https://Neit.vercel.app"),
   openGraph: {
-    title: "chan",
+    title: "Neit",
     description: "Next.js, TailwindCSS and shadcn-ui Starter Template",
-    url: "https://chan.vercel.app",
-    siteName: "chan",
+    url: "https://Neit.vercel.app",
+    siteName: "Neit",
     images: [
       {
-        url: "https://chan.vercel.app/og.png",
+        url: "https://Neit.vercel.app/og.png",
         width: 800,
         height: 600,
       },
       {
-        url: "https://chan.vercel.app/og-dark.png",
+        url: "https://Neit.vercel.app/og-dark.png",
         width: 1800,
         height: 1600,
         alt: "Next.js, TailwindCSS and shadcn-ui Starter Template",

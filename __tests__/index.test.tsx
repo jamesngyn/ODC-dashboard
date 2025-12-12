@@ -13,7 +13,7 @@ describe("Home", () => {
     render(<Home />);
 
     const text = screen.getByText(
-      /Think of chan as that friend who shows up with snacks and already picked the movie/i,
+      /Think of Neit as that friend who shows up with snacks and already picked the movie/i,
     );
 
     expect(text).toBeInTheDocument();

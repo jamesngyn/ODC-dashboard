@@ -1,4 +1,4 @@
-# nextjs-base FE
+# Vexere FE
 
 ## Mục lục
 
@@ -32,7 +32,7 @@ Hoặc dùng npm/yarn tương ứng.
 ## Cấu trúc thư mục
 
 ```
-nextjs-base-fe/
+vexere-fe/
 ├── app/                  # Next.js app directory (routing, page, layout, ...), chia module rõ ràng
 │   ├── auth/             # Các route xác thực: login, register
 │   ├── page.tsx          # Trang chính
