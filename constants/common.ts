@@ -1,3 +1,6 @@
+/** Message for placeholder pages (feature not yet developed). Use i18n key when translation is added. */
+export const FEATURE_NOT_DEVELOPED = "Tính năng không phát triển";
+
 // Common query keys for react-query or tanstack-query
 
 export const QUERY_KEYS = {
@@ -10,5 +13,73 @@ export const QUERY_KEYS = {
     LIST: ["user", "list"] as const,
     DETAIL: (id: string | number) => ["user", "detail", id] as const,
   },
+  BACKLOG: {
+    ISSUES: ["backlog", "issues"] as const,
+    ISSUE_TYPES: ["backlog", "issue-types"] as const,
+    DEFECT_DENSITY_BY_SPRINT: ["backlog", "defect-density-by-sprint"] as const,
+    VELOCITY_BY_SPRINT: ["backlog", "velocity-by-sprint"] as const,
+    PROJECT_MEMBERS: (projectId: string | number) =>
+      ["backlog", "project-members", projectId] as const,
+  },
+  CUSTOMER_VALUE: {
+    TEAM_PERFORMANCE: ["customer-value", "team-performance"] as const,
+  },
   // Thêm các nhóm key khác nếu cần
 } as const;
+
+// Tỉ lệ hoàn thành theo giai đoạn (Overall Completion)
+export const PHASE_COMPLETION_RATIO = {
+  REQUIREMENT: 0.2, // Done requirement: 20%
+  DEVELOPMENT: 0.6, // Done code: 60%
+  TESTING: 0.8, // Done Test: 80%
+  UAT: 0.8, // UAT: 80% (tương đương Testing)
+  RELEASE: 1.0, // Release: 100%
+} as const;
+
+// Plan value tạm thời fix cứng (tính bằng giờ)
+export const PLAN_VALUE_HOURS = 600;
+
+// Tổng USP fix cứng
+export const TOTAL_USP = 8000;
+
+export const BACKLOG_ROLE_TYPE: Record<number, string> = {
+  1: "Admin",
+  2: "Normal User",
+  3: "Reporter",
+  4: "Viewer",
+  5: "Guest Reporter",
+  6: "Guest Viewer",
+} as const;
+
+export function getRoleTypeLabel(roleType: number): string {
+  return BACKLOG_ROLE_TYPE[roleType] ?? "Unknown";
+}
+
+/** Tỉ trọng theo severity để tính Defect Density: sum(count[level] × weight[level]) / manMonth */
+export const SEVERITY_WEIGHTS: Record<
+  "Crash/Critical" | "Major" | "Normal" | "Low",
+  number
+> = {
+  "Crash/Critical": 10,
+  Major: 5,
+  Normal: 3,
+  Low: 1,
+} as const;
+
+/** Tổng số man month dùng cho Defect Density. Cập nhật khi có số liệu. */
+export const DEFECT_DENSITY_MAN_MONTHS = 100;
+
+/** Số ngày làm việc chuẩn cho 1 man-month. */
+export const WORKING_DAYS_PER_MAN_MONTH = 20;
+
+/**
+ * Man month tạm thời = (số thành viên × ngày làm việc) / 20.
+ * Mặc định 20 ngày làm việc: manMonths = memberCount.
+ */
+export function getManMonthsForSprint(
+  memberCount: number,
+  workingDays: number = WORKING_DAYS_PER_MAN_MONTH
+): number {
+  if (WORKING_DAYS_PER_MAN_MONTH <= 0 || memberCount < 0) return 0;
+  return (memberCount * Math.max(0, workingDays)) / WORKING_DAYS_PER_MAN_MONTH;
+}

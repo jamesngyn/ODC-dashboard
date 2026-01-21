@@ -11,3 +11,27 @@ export enum ApiErrorCode {
 
   // Lỗi dữ liệu
 }
+
+export enum TaskType {
+  Requirement = "Requirement",
+  Development = "Development",
+  Testing = "Testing",
+  UAT = "UAT",
+  Release = "Release",
+}
+
+export enum BacklogCategory {
+  ClearRequirement = "Clear Requirement",
+  Coding = "Coding",
+  Testing = "Testing",
+  UAT = "UAT",
+  Release = "Release",
+}
+
+export enum TaskStatus {
+  Open = "Open",
+  InProgress = "In Progress",
+  Resolved = "Resolved",
+  Pending = "Pending",
+  Closed = "Closed",
+}

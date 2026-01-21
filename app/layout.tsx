@@ -4,9 +4,9 @@ import type { Metadata } from "next/types";
 import { Provider } from "@/components/provider";
 
 export const metadata: Metadata = {
-  title: "Neit",
+  title: "ODC Dashboard",
   generator: "Next.js",
-  applicationName: "Neit",
+  applicationName: "ODC Dashboard",
   referrer: "origin-when-cross-origin",
   keywords: [
     "Next.js",
@@ -27,10 +27,10 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL("https://Neit.vercel.app"),
   openGraph: {
-    title: "Neit",
+    title: "ODC Dashboard",
     description: "Next.js, TailwindCSS and shadcn-ui Starter Template",
     url: "https://Neit.vercel.app",
-    siteName: "Neit",
+    siteName: "ODC Dashboard",
     images: [
       {
         url: "https://Neit.vercel.app/og.png",
