@@ -2,7 +2,8 @@ import { QUERY_KEYS } from "@/constants/common";
 import configs from "@/constants/config";
 import { useQuery } from "@tanstack/react-query";
 
-import { BacklogUser, getBacklogProjectMembers } from "@/lib/api/backlog";
+import { getBacklogProjectMembers } from "@/lib/api/backlog";
+import { BacklogUser } from "@/types/interfaces/common";
 
 export const useBacklogProjectMembers = (
   excludeGroupMembers: boolean = false

@@ -9,9 +9,9 @@ import type {
   TeamMemberPerformance,
 } from "@/types/interfaces/customer-value";
 import {
-  type BacklogIssue,
   getActualEndDateFromIssue,
 } from "@/lib/api/backlog";
+import { BacklogIssue } from "@/types/interfaces/common";
 import { TaskStatus } from "@/types/enums/common";
 import { getRoleTypeLabel } from "@/constants/common";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
