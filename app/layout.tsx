@@ -2,6 +2,7 @@ import "./globals.css";
 
 import type { Metadata } from "next/types";
 import { Provider } from "@/components/provider";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
   title: "ODC Dashboard",
@@ -52,13 +53,46 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Read locale from cookie on server
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get("NEXT_LOCALE");
+  const locale = localeCookie?.value && ["en", "vi", "ja"].includes(localeCookie.value)
+    ? localeCookie.value
+    : "vi";
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
+      <head>
+        {/* Script to set locale before React hydration to prevent flash */}
+        {/* This script runs immediately, before any other scripts */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var locale = '${locale}';
+                if (typeof window !== 'undefined') {
+                  // Set window variable immediately (before i18n init)
+                  window.__NEXT_LOCALE__ = locale;
+                  
+                  // Also ensure localStorage is set (for i18n detection)
+                  try {
+                    if (!localStorage.getItem('i18nextLng')) {
+                      localStorage.setItem('i18nextLng', locale);
+                    }
+                  } catch(e) {
+                    // Ignore localStorage errors (e.g., private mode)
+                  }
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
         <Provider attribute="class" defaultTheme="system" enableSystem>
           <main

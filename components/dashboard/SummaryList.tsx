@@ -1,5 +1,8 @@
+"use client";
+
 import { TaskType } from "@/types/enums/common";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface SummaryListProps {
   data: {
@@ -19,10 +22,11 @@ const COLORS: Record<TaskType, string> = {
 };
 
 export const SummaryList = ({ data }: SummaryListProps) => {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-4">
       <h3 className="text-foreground text-lg font-semibold">
-        Status Breakdown
+        {t("progressOverview.statusBreakdown")}
       </h3>
       <div className="flex flex-col gap-3">
         {data.map((item) => (

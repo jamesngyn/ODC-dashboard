@@ -1,12 +1,12 @@
 import { SEVERITY_WEIGHTS } from "@/constants/common";
 import {
   getActualEndDateFromIssue,
-  getBacklogIssueTypes,
+  getBacklogIssueTypeIdByName,
   getBacklogIssuesByMilestone,
   getBacklogMilestones,
 } from "@/lib/api/backlog";
 import { calculateTotalActualHours } from "@/lib/utils";
-import type { BacklogIssue } from "@/lib/api/backlog";
+import type { BacklogIssue } from "@/types/interfaces/common";
 import type {
   DefectDensityPoint,
   DefectTrendsByWeek,
@@ -268,12 +268,10 @@ export function calculateDefectLeakage(
 const DEFECT_DENSITY_SPRINT_LIMIT = 6;
 
 export async function fetchDefectDensityBySprint(): Promise<DefectDensityPoint[]> {
-  const [milestones, types] = await Promise.all([
+  const [milestones, bugTypeId] = await Promise.all([
     getBacklogMilestones(),
-    getBacklogIssueTypes(),
+    getBacklogIssueTypeIdByName("Bug"),
   ]);
-  const bugType = types.find((t) => t.name.toLowerCase().trim() === "bug");
-  const bugId = bugType?.id;
 
   const sorted = [...milestones]
     .filter((m) => !m.archived)
@@ -283,22 +281,18 @@ export async function fetchDefectDensityBySprint(): Promise<DefectDensityPoint[]
       return a.releaseDueDate.localeCompare(b.releaseDueDate);
     });
 
-
   const last = sorted.slice(-DEFECT_DENSITY_SPRINT_LIMIT);
 
   if (last.length === 0) return [];
 
   const points: DefectDensityPoint[] = [];
   for (const m of last) {
-    const allIssues = await getBacklogIssuesByMilestone({
+    // Lấy Bug issues trực tiếp với filter theo issueTypeIds
+    const bugs = await getBacklogIssuesByMilestone({
       milestoneIds: [m.id],
+      issueTypeIds: bugTypeId ? [bugTypeId] : undefined,
       count: 100,
     });
-
-    const bugs =
-      bugId != null
-        ? allIssues.filter((i) => i.issueType?.id === bugId)
-        : allIssues;
 
     const severity = getSeverityCountsFromBugs(bugs);
     const totalActualHours = calculateTotalActualHours(bugs);

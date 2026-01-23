@@ -1,8 +1,8 @@
 import {
   getBacklogIssuesByMilestone,
   getBacklogMilestones,
+  getBacklogIssueTypeIdByName,
 } from "@/lib/api/backlog";
-import type { BacklogIssue } from "@/lib/api/backlog";
 import { getPointFromIssue } from "@/lib/utils";
 import { TaskStatus } from "@/types/enums/common";
 import type {
@@ -15,13 +15,12 @@ import type {
 
 const VELOCITY_SPRINT_LIMIT = 6;
 
-function isGtask(issue: BacklogIssue): boolean {
-  const name = issue.issueType?.name?.toLowerCase() ?? "";
-  return name === "gtask" || name.includes("gtask");
-}
-
 export async function fetchVelocityBySprint(): Promise<VelocityBySprintPoint[]> {
-  const milestones = await getBacklogMilestones();
+  const [milestones, gtaskTypeId] = await Promise.all([
+    getBacklogMilestones(),
+    getBacklogIssueTypeIdByName("Gtask"),
+  ]);
+
   const sorted = [...milestones]
     .filter((m) => !m.archived)
     .sort((a, b) => {
@@ -34,11 +33,12 @@ export async function fetchVelocityBySprint(): Promise<VelocityBySprintPoint[]> 
 
   const points: VelocityBySprintPoint[] = [];
   for (const m of last) {
-    const issues = await getBacklogIssuesByMilestone({
+    // Lấy Gtask issues trực tiếp với filter theo issueTypeIds
+    const gtasks = await getBacklogIssuesByMilestone({
       milestoneIds: [m.id],
+      issueTypeIds: gtaskTypeId ? [gtaskTypeId] : undefined,
       count: 100,
     });
-    const gtasks = issues.filter(isGtask);
     const committed = gtasks.reduce(
       (sum, i) => sum + getPointFromIssue(i),
       0

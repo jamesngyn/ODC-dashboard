@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import type { KeyInsightItem } from "@/types/interfaces/velocity";
 
@@ -25,10 +26,13 @@ interface KeyInsightsCardProps {
 }
 
 export function KeyInsightsCard({ data }: KeyInsightsCardProps) {
+  const { t } = useTranslation();
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Key Insights (Nghiên cứu sau)</CardTitle>
+        <CardTitle className="text-sm font-medium">
+          {t("velocity.keyInsights")} ({t("velocity.keyInsightsSubtitle")})
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="space-y-3">

@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Users } from "lucide-react";
 import type { PerformanceIndicator } from "@/types/interfaces/customer-value";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { useTranslation } from "react-i18next";
 
 interface PerformanceIndicatorsProps {
   indicators: PerformanceIndicator[];
@@ -34,25 +35,12 @@ const indicatorConfig = {
 export function PerformanceIndicators({
   indicators,
 }: PerformanceIndicatorsProps) {
+  const { t } = useTranslation();
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {indicators.map((indicator) => {
         const config = indicatorConfig[indicator.type];
         const Icon = config.icon;
-
-        const getTitle = () => {
-          if (indicator.type === "high") return "High Performance";
-          if (indicator.type === "under") return "Under Performance";
-          return "Optimal Performance";
-        };
-
-        const getDescription = () => {
-          if (indicator.type === "high")
-            return `${indicator.count} members earned value> 100%..`;
-          if (indicator.type === "under")
-            return `${indicator.count} members below 90%. Consider reassigning tasks.`;
-          return `${indicator.count} members within target range (90-100%).`;
-        };
 
         return (
           <Card
@@ -65,9 +53,9 @@ export function PerformanceIndicators({
                   className={cn("h-6 w-6 flex-shrink-0", config.iconColor)}
                 />
                 <div className="flex-1">
-                  <h3 className="mb-2 text-lg font-bold">{getTitle()}</h3>
+                  <h3 className="mb-2 text-lg font-bold">{indicator.title}</h3>
                   <p className="text-muted-foreground text-sm">
-                    {getDescription()}
+                    {indicator.description}
                   </p>
                 </div>
               </div>

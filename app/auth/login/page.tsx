@@ -17,16 +17,21 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
 
-const loginSchema = z.object({
-  usernameOrEmail: z.string().min(1, "Vui lòng nhập tên đăng nhập hoặc email"),
-  password: z.string().min(1, "Vui lòng nhập mật khẩu"),
-});
+type LoginValues = z.infer<ReturnType<typeof getLoginSchema>>;
 
-type LoginValues = z.infer<typeof loginSchema>;
+function getLoginSchema(t: (key: string) => string) {
+  return z.object({
+    usernameOrEmail: z.string().min(1, t("auth.login.usernameOrEmailRequired")),
+    password: z.string().min(1, t("auth.login.passwordRequired")),
+  });
+}
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const [serverError, setServerError] = useState("");
+  const loginSchema = getLoginSchema(t);
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -56,11 +61,11 @@ export default function LoginPage() {
           autoComplete="off"
         >
           <h1 className="text-center text-3xl font-extrabold text-blue-700 dark:text-blue-300">
-            Đăng nhập tài khoản
+            {t("auth.login.title")}
           </h1>
           {serverError && (
             <Alert variant="destructive">
-              <AlertTitle>Lỗi</AlertTitle>
+              <AlertTitle>{t("common.error")}</AlertTitle>
               <AlertDescription>{serverError}</AlertDescription>
             </Alert>
           )}
@@ -69,10 +74,10 @@ export default function LoginPage() {
             name="usernameOrEmail"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tên đăng nhập hoặc Email</FormLabel>
+                <FormLabel>{t("auth.login.usernameOrEmail")}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Nhập tên đăng nhập hoặc email"
+                    placeholder={t("auth.login.usernameOrEmailPlaceholder")}
                     autoFocus
                     {...field}
                   />
@@ -86,11 +91,11 @@ export default function LoginPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Mật khẩu</FormLabel>
+                <FormLabel>{t("auth.login.password")}</FormLabel>
                 <FormControl>
                   <Input
                     type="password"
-                    placeholder="Nhập mật khẩu"
+                    placeholder={t("auth.login.passwordPlaceholder")}
                     {...field}
                   />
                 </FormControl>
@@ -99,22 +104,22 @@ export default function LoginPage() {
             )}
           />
           <Button type="submit" className="mt-2" disabled={isSubmitting}>
-            {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
+            {isSubmitting ? t("auth.login.submitting") : t("auth.login.submit")}
           </Button>
           <div className="flex flex-col items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
             <Link
               href="/forgot-password"
               className="text-blue-600 hover:underline dark:text-blue-400"
             >
-              Quên mật khẩu?
+              {t("auth.login.forgotPassword")}
             </Link>
             <span>
-              Chưa có tài khoản?{" "}
+              {t("auth.login.noAccount")}{" "}
               <Link
                 href="/register"
                 className="text-blue-600 hover:underline dark:text-blue-400"
               >
-                Đăng ký
+                {t("auth.login.register")}
               </Link>
             </span>
           </div>

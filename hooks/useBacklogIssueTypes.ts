@@ -2,9 +2,9 @@ import { QUERY_KEYS } from "@/constants/common";
 import { useQuery } from "@tanstack/react-query";
 
 import {
-  BacklogIssueType,
   getBacklogIssueTypes,
 } from "@/lib/api/backlog";
+import { BacklogIssueType } from "@/types/interfaces/common";
 
 export const useBacklogIssueTypes = () => {
   const {

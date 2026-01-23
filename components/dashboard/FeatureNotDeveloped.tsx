@@ -1,24 +1,29 @@
+"use client";
+
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
 } from "@/components/ui/empty";
-import { FEATURE_NOT_DEVELOPED } from "@/constants/common";
 import { Construction } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function FeatureNotDeveloped({
-  content = FEATURE_NOT_DEVELOPED,
+  content,
 }: {
   content?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <Empty className="min-h-[200px]">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Construction />
         </EmptyMedia>
-        <EmptyDescription>{content}</EmptyDescription>
+        <EmptyDescription>
+          {content ?? t("common.featureNotDeveloped")}
+        </EmptyDescription>
       </EmptyHeader>
     </Empty>
   );

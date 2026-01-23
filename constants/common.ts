@@ -1,4 +1,5 @@
 /** Message for placeholder pages (feature not yet developed). Use i18n key when translation is added. */
+// Deprecated: Use i18n key "common.featureNotDeveloped" instead
 export const FEATURE_NOT_DEVELOPED = "Tính năng không phát triển";
 
 // Common query keys for react-query or tanstack-query
@@ -16,6 +17,7 @@ export const QUERY_KEYS = {
   BACKLOG: {
     ISSUES: ["backlog", "issues"] as const,
     ISSUE_TYPES: ["backlog", "issue-types"] as const,
+    CATEGORIES: ["backlog", "categories"] as const,
     DEFECT_DENSITY_BY_SPRINT: ["backlog", "defect-density-by-sprint"] as const,
     VELOCITY_BY_SPRINT: ["backlog", "velocity-by-sprint"] as const,
     PROJECT_MEMBERS: (projectId: string | number) =>
@@ -54,6 +56,9 @@ export const BACKLOG_ROLE_TYPE: Record<number, string> = {
 export function getRoleTypeLabel(roleType: number): string {
   return BACKLOG_ROLE_TYPE[roleType] ?? "Unknown";
 }
+
+// Note: For i18n support, use translation key "roles.{roleName}" instead
+// This function is kept for backward compatibility
 
 /** Tỉ trọng theo severity để tính Defect Density: sum(count[level] × weight[level]) / manMonth */
 export const SEVERITY_WEIGHTS: Record<

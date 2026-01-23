@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
 
 import { PerformanceIndicators } from "./PerformanceIndicators";
 import { SummaryCard } from "./SummaryCard";
@@ -95,6 +96,7 @@ function isDateInRange(
 
 
 export function CustomerValueDashboard() {
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<PeriodOption>("all");
   const { members, isLoading: isLoadingMembers } = useBacklogProjectMembers();
   const { issues, isLoading: isLoadingIssues } = useBacklogIssues();
@@ -194,20 +196,20 @@ export function CustomerValueDashboard() {
       return [
         {
           type: "high",
-          title: "High Performance",
-          description: "0 members earned value> 100%..",
+          title: t("customerValue.highPerformance"),
+          description: t("customerValue.highPerformanceDescription", { count: 0 }),
           count: 0,
         },
         {
           type: "under",
-          title: "Under Performance",
-          description: "0 members below 90%. Consider reassigning tasks.",
+          title: t("customerValue.underPerformance"),
+          description: t("customerValue.underPerformanceDescription", { count: 0 }),
           count: 0,
         },
         {
           type: "optimal",
-          title: "Optimal Performance",
-          description: "0 members within target range (90-100%).",
+          title: t("customerValue.optimalPerformance"),
+          description: t("customerValue.optimalPerformanceDescription", { count: 0 }),
           count: 0,
         },
       ];
@@ -228,24 +230,24 @@ export function CustomerValueDashboard() {
     return [
       {
         type: "high",
-        title: "High Performance",
-        description: `${highCount} members earned value> 100%..`,
+        title: t("customerValue.highPerformance"),
+        description: t("customerValue.highPerformanceDescription", { count: highCount }),
         count: highCount,
       },
       {
         type: "under",
-        title: "Under Performance",
-        description: `${underCount} members below 90%. Consider reassigning tasks.`,
+        title: t("customerValue.underPerformance"),
+        description: t("customerValue.underPerformanceDescription", { count: underCount }),
         count: underCount,
       },
       {
         type: "optimal",
-        title: "Optimal Performance",
-        description: `${optimalCount} members within target range (90-100%).`,
+        title: t("customerValue.optimalPerformance"),
+        description: t("customerValue.optimalPerformanceDescription", { count: optimalCount }),
         count: optimalCount,
       },
     ];
-  }, [teamData]);
+  }, [teamData, t]);
 
   if (isLoadingMembers || isLoadingIssues) {
     return (
@@ -264,20 +266,20 @@ export function CustomerValueDashboard() {
             onValueChange={(value) => setPeriod(value as PeriodOption)}
           >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Chọn khoảng thời gian" />
+              <SelectValue placeholder={t("common.selectPeriod")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              <SelectItem value="this-week">Tuần này</SelectItem>
-              <SelectItem value="last-week">Tuần trước</SelectItem>
-              <SelectItem value="this-month">Tháng này</SelectItem>
-              <SelectItem value="last-month">Tháng trước</SelectItem>
+              <SelectItem value="all">{t("common.all")}</SelectItem>
+              <SelectItem value="this-week">{t("common.thisWeek")}</SelectItem>
+              <SelectItem value="last-week">{t("common.lastWeek")}</SelectItem>
+              <SelectItem value="this-month">{t("common.thisMonth")}</SelectItem>
+              <SelectItem value="last-month">{t("common.lastMonth")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="flex min-h-[400px] items-center justify-center">
           <p className="text-muted-foreground text-sm">
-            Không có dữ liệu hiệu suất trong khoảng thời gian đã chọn
+            {t("customerValue.noPerformanceData")}
           </p>
         </div>
       </div>
@@ -293,14 +295,14 @@ export function CustomerValueDashboard() {
           onValueChange={(value) => setPeriod(value as PeriodOption)}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Chọn khoảng thời gian" />
+            <SelectValue placeholder={t("common.selectPeriod")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="this-week">Tuần này</SelectItem>
-            <SelectItem value="last-week">Tuần trước</SelectItem>
-            <SelectItem value="this-month">Tháng này</SelectItem>
-            <SelectItem value="last-month">Tháng trước</SelectItem>
+            <SelectItem value="all">{t("common.all")}</SelectItem>
+            <SelectItem value="this-week">{t("common.thisWeek")}</SelectItem>
+            <SelectItem value="last-week">{t("common.lastWeek")}</SelectItem>
+            <SelectItem value="this-month">{t("common.thisMonth")}</SelectItem>
+            <SelectItem value="last-month">{t("common.lastMonth")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

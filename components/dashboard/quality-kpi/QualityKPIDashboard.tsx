@@ -34,21 +34,10 @@ import { useDefectDensityBySprint } from "@/hooks/useDefectDensityBySprint";
 import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
 import { Loader2 } from "lucide-react";
-
-const testingCoverageData: TestingCoverageItem[] = [
-  { label: "Unit Testing", value: 94, barColor: "#14b8a6" },
-  { label: "Integration", value: 87, barColor: "#3b82f6" },
-  { label: "System Testing", value: 76, barColor: "#f97316" },
-];
-
-const qualityInsightsData: QualityInsightItem[] = [
-  { type: "success", text: "Defect density improved 15% from last sprint" },
-  { type: "success", text: "Leakage rate within acceptable threshold" },
-  { type: "warning", text: "System testing needs improvement" },
-  { type: "info", text: "Critical defects require immediate attention" },
-];
+import { useTranslation } from "react-i18next";
 
 export function QualityKPIDashboard() {
+  const { t } = useTranslation();
   const {
     issueTypes,
     isLoading: isLoadingTypes,
@@ -66,6 +55,19 @@ export function QualityKPIDashboard() {
   });
   const isLoading = isLoadingTypes || isLoadingIssues;
   const isError = isErrorTypes || isErrorIssues;
+
+  const testingCoverageData: TestingCoverageItem[] = [
+    { label: t("qualityKpi.unitTesting"), value: 94, barColor: "#14b8a6" },
+    { label: t("qualityKpi.integration"), value: 87, barColor: "#3b82f6" },
+    { label: t("qualityKpi.systemTesting"), value: 76, barColor: "#f97316" },
+  ];
+
+  const qualityInsightsData: QualityInsightItem[] = [
+    { type: "success", text: t("qualityKpi.defectDensityImproved") },
+    { type: "success", text: t("qualityKpi.leakageRateAcceptable") },
+    { type: "warning", text: t("qualityKpi.systemTestingNeedsImprovement") },
+    { type: "info", text: t("qualityKpi.criticalDefectsRequireAttention") },
+  ];
 
   const {
     data: defectDensityData,
@@ -117,22 +119,22 @@ export function QualityKPIDashboard() {
   const defectDensityCard: QualityMetricCardData = useMemo(
     () => ({
       value: defectDensity.toFixed(2),
-      label: "Defect Density",
-      subLabel: "Per man month (Internal + External Bug)",
-      target: "Target: < 2.0",
+      label: t("qualityKpi.defectDensity"),
+      subLabel: t("qualityKpi.perManMonth"),
+      target: t("qualityKpi.targetLessThan2"),
       valueColor: defectDensity < 2 ? "green" : "blue",
     }),
-    [defectDensity]
+    [defectDensity, t]
   );
   const defectLeakageCard: QualityMetricCardData = useMemo(
     () => ({
       value: `${defectLeakage}`,
-      label: "Defect Leakage",
-      subLabel: "Escaped to production",
-      target: "Target: < 5",
+      label: t("qualityKpi.defectLeakage"),
+      subLabel: t("qualityKpi.escapedToProduction"),
+      target: t("qualityKpi.targetLessThan5"),
       valueColor: defectLeakage < 0.05 ? "green" : "blue",
     }),
-    [defectLeakage]
+    [defectLeakage, t]
   );
   const metricCardsData = useMemo(
     () => [defectDensityCard, defectLeakageCard],
@@ -146,7 +148,7 @@ export function QualityKPIDashboard() {
         <Card className="bg-card border-border border-gray-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">
-              Defect Density Tracking
+              {t("qualityKpi.defectDensityTracking")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -166,7 +168,7 @@ export function QualityKPIDashboard() {
         <Card className="bg-card border-border border-gray-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">
-              Defect Trends by Phase
+              {t("qualityKpi.defectTrendsByPhase")}
             </CardTitle>
           </CardHeader>
           <CardContent>

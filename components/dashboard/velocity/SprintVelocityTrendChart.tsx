@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 import type { VelocityBySprintPoint } from "@/types/interfaces/velocity";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
@@ -17,13 +18,14 @@ interface SprintVelocityTrendChartProps {
   data: VelocityBySprintPoint[];
 }
 
-const chartConfig = {
-  committed: { label: "Committed", color: "#3b82f6" },
-  completed: { label: "Completed", color: "#14b8a6" },
-  average: { label: "- Average", color: "#eab308" },
-};
-
 export function SprintVelocityTrendChart({ data }: SprintVelocityTrendChartProps) {
+  const { t } = useTranslation();
+  const chartConfig = {
+    committed: { label: t("velocity.committed"), color: "#3b82f6" },
+    completed: { label: t("velocity.completed"), color: "#14b8a6" },
+    average: { label: `- ${t("common.average")}`, color: "#eab308" },
+  };
+
   const avg =
     data.length > 0
       ? Math.round(
@@ -79,18 +81,18 @@ export function SprintVelocityTrendChart({ data }: SprintVelocityTrendChartProps
       <div className="flex justify-center gap-4 pt-2 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="h-2.5 w-2.5 rounded-[2px] bg-[#3b82f6]" />
-          Committed
+          {t("velocity.committed")}
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2.5 w-2.5 rounded-[2px] bg-[#14b8a6]" />
-          Completed
+          {t("velocity.completed")}
         </span>
         <span className="flex items-center gap-1">
           <span
             className="h-0 w-4 border-t-2 border-dashed border-[#eab308]"
             style={{ transform: "translateY(50%)" }}
           />
-          Average
+          {t("common.average")}
         </span>
       </div>
     </div>

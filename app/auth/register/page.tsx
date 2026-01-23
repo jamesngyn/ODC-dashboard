@@ -17,23 +17,28 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
 
-const registerSchema = z
-  .object({
-    username: z.string().min(3, "Tên người dùng phải có ít nhất 3 ký tự"),
-    email: z.string().email("Email không hợp lệ"),
-    password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Mật khẩu xác nhận không khớp",
-    path: ["confirmPassword"],
-  });
+function getRegisterSchema(t: (key: string) => string) {
+  return z
+    .object({
+      username: z.string().min(3, t("auth.register.usernameMinLength")),
+      email: z.string().email(t("auth.register.emailInvalid")),
+      password: z.string().min(6, t("auth.register.passwordMinLength")),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t("auth.register.passwordMismatch"),
+      path: ["confirmPassword"],
+    });
+}
 
-type RegisterValues = z.infer<typeof registerSchema>;
+type RegisterValues = z.infer<ReturnType<typeof getRegisterSchema>>;
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const [serverError, setServerError] = useState("");
+  const registerSchema = getRegisterSchema(t);
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -65,11 +70,11 @@ export default function RegisterPage() {
           autoComplete="off"
         >
           <h1 className="text-center text-3xl font-extrabold text-blue-700 dark:text-blue-300">
-            Đăng ký tài khoản
+            {t("auth.register.title")}
           </h1>
           {serverError && (
             <Alert variant="destructive">
-              <AlertTitle>Lỗi</AlertTitle>
+              <AlertTitle>{t("common.error")}</AlertTitle>
               <AlertDescription>{serverError}</AlertDescription>
             </Alert>
           )}
@@ -78,10 +83,10 @@ export default function RegisterPage() {
             name="username"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tên người dùng</FormLabel>
+                <FormLabel>{t("auth.register.username")}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Nhập tên người dùng"
+                    placeholder={t("auth.register.usernamePlaceholder")}
                     autoFocus
                     {...field}
                   />
@@ -95,9 +100,13 @@ export default function RegisterPage() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>{t("auth.register.email")}</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="Nhập email" {...field} />
+                  <Input
+                    type="email"
+                    placeholder={t("auth.register.emailPlaceholder")}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -108,11 +117,11 @@ export default function RegisterPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Mật khẩu</FormLabel>
+                <FormLabel>{t("auth.register.password")}</FormLabel>
                 <FormControl>
                   <Input
                     type="password"
-                    placeholder="Nhập mật khẩu"
+                    placeholder={t("auth.register.passwordPlaceholder")}
                     {...field}
                   />
                 </FormControl>
@@ -125,11 +134,11 @@ export default function RegisterPage() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Xác nhận mật khẩu</FormLabel>
+                <FormLabel>{t("auth.register.confirmPassword")}</FormLabel>
                 <FormControl>
                   <Input
                     type="password"
-                    placeholder="Nhập lại mật khẩu"
+                    placeholder={t("auth.register.confirmPasswordPlaceholder")}
                     {...field}
                   />
                 </FormControl>
@@ -138,16 +147,16 @@ export default function RegisterPage() {
             )}
           />
           <Button type="submit" className="mt-2" disabled={isSubmitting}>
-            {isSubmitting ? "Đang đăng ký..." : "Đăng ký"}
+            {isSubmitting ? t("auth.register.submitting") : t("auth.register.submit")}
           </Button>
           <div className="flex flex-col items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
             <span>
-              Đã có tài khoản?{" "}
+              {t("auth.register.hasAccount")}{" "}
               <Link
                 href="/login"
                 className="text-blue-600 hover:underline dark:text-blue-400"
               >
-                Đăng nhập
+                {t("auth.register.login")}
               </Link>
             </span>
           </div>

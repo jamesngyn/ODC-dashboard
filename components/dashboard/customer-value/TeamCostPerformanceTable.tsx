@@ -5,6 +5,7 @@ import { getRoleTypeLabel } from "@/constants/common";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CommonTable, type TableColumn } from "@/components/ui/common-table";
+import { useTranslation } from "react-i18next";
 
 interface TeamCostPerformanceTableProps {
   data: TeamMemberPerformance[];
@@ -13,16 +14,17 @@ interface TeamCostPerformanceTableProps {
 export function TeamCostPerformanceTable({
   data,
 }: TeamCostPerformanceTableProps) {
+  const { t } = useTranslation();
   const columns: TableColumn<TeamMemberPerformance>[] = [
     {
       key: "name",
-      header: "Team Member",
+      header: t("customerValue.teamMember"),
       accessor: (member) => member.name,
       className: "font-medium",
     },
     {
       key: "role",
-      header: "Role",
+      header: t("customerValue.role"),
       accessor: (member) => (
         <span className="text-muted-foreground">
           {getRoleTypeLabel(member.roleType)}
@@ -31,21 +33,21 @@ export function TeamCostPerformanceTable({
     },
     {
       key: "billable",
-      header: "Billable (ACMS data)",
+      header: t("customerValue.billable"),
       accessor: (member) => `${member.billableHours}h`,
       className: "text-right",
       headerClassName: "text-right",
     },
     {
       key: "earned",
-      header: "Earned",
+      header: t("customerValue.earned"),
       accessor: (member) => `${member.earnedHours}h`,
       className: "text-right",
       headerClassName: "text-right",
     },
     {
       key: "performance",
-      header: "Per%",
+      header: t("customerValue.performance"),
       accessor: (member) => (
         <span
           className={cn(
@@ -69,7 +71,7 @@ export function TeamCostPerformanceTable({
     <Card>
       <CardHeader>
         <CardTitle className="text-lg font-semibold">
-          Team Cost Performance
+          {t("customerValue.teamCostPerformance")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -77,7 +79,7 @@ export function TeamCostPerformanceTable({
           data={data}
           columns={columns}
           getRowKey={(member) => member.id}
-          emptyMessage="Không có dữ liệu hiệu suất"
+          emptyMessage={t("customerValue.noPerformanceDataShort")}
         />
       </CardContent>
     </Card>

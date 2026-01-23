@@ -11,15 +11,18 @@ import {
   buildSprintSummary,
 } from "@/lib/velocity";
 
+
 import { ForecastCard } from "./ForecastCard";
 import { KeyInsightsCard } from "./KeyInsightsCard";
 import { SprintBurndownChart } from "./SprintBurndownChart";
 import { SprintSummaryCard } from "./SprintSummaryCard";
 import { SprintVelocityTrendChart } from "./SprintVelocityTrendChart";
+import { useTranslation } from "react-i18next";
 
 const REMAINING_WORK_DEFAULT = 160;
 
 export function VelocityDashboard() {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useVelocityBySprint();
 
   const sprintSummary = useMemo(() => buildSprintSummary(data), [data]);
@@ -52,7 +55,7 @@ export function VelocityDashboard() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <p className="text-muted-foreground text-sm">
-          Có lỗi xảy ra khi tải dữ liệu
+          {t("velocity.errorLoadingData")}
         </p>
       </div>
     );
@@ -67,7 +70,7 @@ export function VelocityDashboard() {
         <div className="md:col-span-2">
           <div className="rounded-xl border border-gray-200 bg-card p-4 text-card-foreground">
             <h2 className="mb-4 text-sm font-medium">
-              Sprint Velocity Trend
+              {t("velocity.sprintVelocityTrend")}
             </h2>
             <SprintVelocityTrendChart data={data} />
           </div>
@@ -82,7 +85,7 @@ export function VelocityDashboard() {
         <div>
           <div className="rounded-xl border border-gray-200 bg-card p-4 text-card-foreground">
             <h2 className="mb-4 text-sm font-medium">
-              Sprint Burndown
+              {t("velocity.sprintBurndown")}
             </h2>
             <SprintBurndownChart data={burndownData} />
           </div>

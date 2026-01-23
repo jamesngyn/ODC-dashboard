@@ -8,9 +8,8 @@ import { twMerge } from "tailwind-merge";
 import { TaskStatus, TaskType } from "@/types/enums/common";
 import {
   BacklogIssue,
-  getActualEndDateFromIssue,
-  mapBacklogCategoryToTaskStatus,
-} from "@/lib/api/backlog";
+} from "@/types/interfaces/common";
+import { getActualEndDateFromIssue, mapBacklogCategoryToTaskStatus } from "@/lib/api/backlog";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

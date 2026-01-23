@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 import type { BurndownDayPoint } from "@/types/interfaces/velocity";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
@@ -17,13 +18,14 @@ interface SprintBurndownChartProps {
   data: BurndownDayPoint[];
 }
 
-const chartConfig = {
-  actual: { label: "Actual", color: "#14b8a6" },
-  ideal: { label: "Ideal", color: "#6b7280" },
-};
-
 export function SprintBurndownChart({ data }: SprintBurndownChartProps) {
+  const { t } = useTranslation();
   if (data.length === 0) return null;
+
+  const chartConfig = {
+    actual: { label: t("velocity.actual"), color: "#14b8a6" },
+    ideal: { label: t("velocity.ideal"), color: "#6b7280" },
+  };
 
   const maxVal = Math.max(
     ...data.flatMap((d) => [d.actual, d.ideal]),

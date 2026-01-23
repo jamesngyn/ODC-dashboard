@@ -9,46 +9,57 @@ import {
   calculateTasksCompleted,
   calculateUSPCompleted,
 } from "@/lib/utils";
-import type { BacklogIssue } from "@/lib/api/backlog";
+import type { BacklogIssue } from "@/types/interfaces/common";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
+import { useTranslation } from "react-i18next";
 
 import { HealthIndicators } from "./HealthIndicators";
 import { KeyAchievements } from "./KeyAchievements";
 import { MetricCard } from "./MetricCard";
 
-function splitGtasksAndRegularTasks(issues: BacklogIssue[] | undefined) {
-  if (!issues || issues.length === 0) {
-    return { gtasks: [] as BacklogIssue[], regularTasks: [] as BacklogIssue[] };
-  }
-  const gtasks: BacklogIssue[] = [];
-  const regularTasks: BacklogIssue[] = [];
-  for (const issue of issues) {
-    const name = issue.issueType?.name?.toLowerCase() ?? "";
-    if (name === "gtask" || name.includes("gtask")) {
-      gtasks.push(issue);
-    } else {
-      regularTasks.push(issue);
-    }
-  }
-  return { gtasks, regularTasks };
+function filterOutGtasks(
+  allIssues: BacklogIssue[] | undefined,
+  gtasks: BacklogIssue[]
+): BacklogIssue[] {
+  if (!allIssues || allIssues.length === 0) return [];
+  if (gtasks.length === 0) return allIssues;
+
+  // Tạo Set các Gtask IDs để lookup nhanh
+  const gtaskIds = new Set(gtasks.map((g) => g.id));
+  return allIssues.filter((issue) => !gtaskIds.has(issue.id));
 }
 
 export function WorkloadDashboard() {
-  const { issues, isLoading, isError } = useBacklogIssues();
+  const { t } = useTranslation();
+  // Fetch Gtasks trực tiếp với filter theo issueType
+  const {
+    issues: gtasks,
+    isLoading: isLoadingGtasks,
+    isError: isErrorGtasks,
+  } = useBacklogIssues({ issueTypeName: "Gtask" });
+  // Fetch tất cả issues để lấy regularTasks (các issues không phải Gtask)
+  const { issues: allIssues, isLoading: isLoadingAll, isError: isErrorAll } =
+    useBacklogIssues();
 
-  const { gtasks, regularTasks } = useMemo(
-    () => splitGtasksAndRegularTasks(issues),
-    [issues]
+  const isLoading = isLoadingGtasks || isLoadingAll;
+  const isError = isErrorGtasks || isErrorAll;
+
+  // Lọc regularTasks từ allIssues bằng cách loại bỏ các Gtasks
+  const regularTasks = useMemo(
+    () => filterOutGtasks(allIssues, gtasks ?? []),
+    [allIssues, gtasks]
   );
 
   const overallCompletion = useMemo(() => {
-    if (gtasks.length === 0) return 0;
-    return calculateOverallCompletionByEstimate(gtasks);
+    const gtaskList = gtasks ?? [];
+    if (gtaskList.length === 0) return 0;
+    return calculateOverallCompletionByEstimate(gtaskList);
   }, [gtasks]);
 
   const estimateCompleted = useMemo(() => {
-    if (gtasks.length === 0) return { completed: 0, total: 0 };
-    return calculateEstimateCompleted(gtasks);
+    const gtaskList = gtasks ?? [];
+    if (gtaskList.length === 0) return { completed: 0, total: 0 };
+    return calculateEstimateCompleted(gtaskList);
   }, [gtasks]);
 
   const tasksCompleted = useMemo(() => {
@@ -73,7 +84,7 @@ export function WorkloadDashboard() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <p className="text-muted-foreground text-sm">
-          Có lỗi xảy ra khi tải dữ liệu
+          {t("workload.errorLoadingData")}
         </p>
       </div>
     );
@@ -86,27 +97,27 @@ export function WorkloadDashboard() {
       {/* Top Row: Key Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="Overall Completion"
+          title={t("workload.overallCompletion")}
           mainValue={`${completionValue}%`}
           progress={completionValue}
         />
         <MetricCard
-          title="Estimate Completed"
+          title={t("workload.estimateCompleted")}
           mainValue={estimateCompleted.completed.toString()}
           subValue={estimateCompleted.total.toString()}
-          subLabel="Total Hours"
+          subLabel={t("workload.totalHours")}
         />
         <MetricCard
-          title="Tasks Completed"
+          title={t("workload.tasksCompleted")}
           mainValue={tasksCompleted.completed.toString()}
           subValue={tasksCompleted.total.toString()}
-          subLabel="Total Tasks"
+          subLabel={t("workload.totalTasks")}
         />
         <MetricCard
-          title="USP Completed"
+          title={t("workload.uspCompleted")}
           mainValue={uspCompleted.completed.toString()}
           subValue={uspCompleted.total.toString()}
-          subLabel="Total USP"
+          subLabel={t("workload.totalUsp")}
         />
       </div>
 

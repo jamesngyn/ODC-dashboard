@@ -4,13 +4,15 @@ import { useMemo } from "react";
 import { Loader2 } from "lucide-react";
 
 import { DashboardStats } from "@/types/dashboard";
-import { BacklogCategory, TaskStatus, TaskType } from "@/types/enums/common";
+import { TaskStatus, TaskType } from "@/types/enums/common";
 import {
   getActualEndDateFromIssue,
   mapBacklogCategoryToTaskStatus,
 } from "@/lib/api/backlog";
 import { isActualEndDateInRange } from "@/lib/utils";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
+import { useBacklogCategories } from "@/hooks/useBacklogCategories";
+import { useBacklogIssuesCountByCategories } from "@/hooks/useBacklogIssuesCountByCategory";
 import {
   Card,
   CardContent,
@@ -22,9 +24,20 @@ import {
 import { InsightCards } from "./InsightCards";
 import { StatusDonutChart } from "./StatusDonutChart";
 import { SummaryList } from "./SummaryList";
+import { useTranslation } from "react-i18next";
 
 export const ProgressOverviewWidget = () => {
-  const { issues, isLoading, isError } = useBacklogIssues();
+  const { t } = useTranslation();
+  const { issues, isLoading: isLoadingIssues, isError: isErrorIssues } = useBacklogIssues();
+  const { categories, isLoading: isLoadingCategories } = useBacklogCategories();
+  const {
+    categoryCounts,
+    isLoading: isLoadingCategoryCounts,
+    isError: isErrorCategoryCounts,
+  } = useBacklogIssuesCountByCategories({
+    categories,
+    enabled: categories.length > 0,
+  });
 
   const { data, categoryDistribution } = useMemo<{
     data: DashboardStats | null;
@@ -41,38 +54,30 @@ export const ProgressOverviewWidget = () => {
 
     const totalTasks = issues.length;
 
-    // 1. Category Distribution Logic - Phân loại và đếm theo category gốc từ Backlog
-    const categoryCounts = issues.reduce(
-      (acc, issue) => {
-        // Lấy category đầu tiên từ mảng category
-        const categoryName =
-          issue.category && issue.category.length > 0
-            ? issue.category[0].name
-            : "Unknown";
-
-        acc[categoryName] = (acc[categoryName] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
+    // 1. Category Distribution Logic - Sử dụng counts từ API với categoryId filter
+    // Tạo map từ categoryCounts để lookup nhanh
+    const categoryCountMap = new Map(
+      categoryCounts.map((item) => [item.category.id, item.count])
     );
 
-    // Tạo category distribution với thứ tự theo BacklogCategory enum
-    const categoryDistribution = Object.values(BacklogCategory).map(
-      (category) => {
-        const count = categoryCounts[category] || 0;
-        // Map category sang TaskType để dùng chung màu sắc với SummaryList
-        const status = mapBacklogCategoryToTaskStatus([
-          { id: 0, projectId: 0, name: category, displayOrder: 0 },
-        ]);
-        return {
-          status,
-          categoryName: category, // Lưu category name để hiển thị
-          count,
-          percentage:
-            totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0,
-        };
-      }
+    // Sắp xếp categories theo displayOrder
+    const sortedCategories = [...categories].sort(
+      (a, b) => a.displayOrder - b.displayOrder
     );
+
+    // Tạo category distribution từ counts đã fetch từ API
+    const categoryDistribution = sortedCategories.map((category) => {
+      const count = categoryCountMap.get(category.id) || 0;
+      // Map category sang TaskType để dùng chung màu sắc với SummaryList
+      const status = mapBacklogCategoryToTaskStatus([category]);
+      return {
+        status,
+        categoryName: category.name, // Lưu category name để hiển thị
+        count,
+        percentage:
+          totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0,
+      };
+    });
 
     // 2. Status Distribution Logic (cho chart và insights)
     const statusCounts = issues.reduce(
@@ -164,9 +169,9 @@ export const ProgressOverviewWidget = () => {
       },
       categoryDistribution,
     };
-  }, [issues]);
+  }, [issues, categories, categoryCounts]);
 
-  if (isLoading) {
+  if (isLoadingIssues || isLoadingCategories || isLoadingCategoryCounts) {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="text-primary h-8 w-8 animate-spin" />
@@ -174,10 +179,10 @@ export const ProgressOverviewWidget = () => {
     );
   }
 
-  if (isError) {
+  if (isErrorIssues || isErrorCategoryCounts) {
     return (
       <div className="flex items-center justify-center p-12 text-red-500">
-        Failed to load data from Backlog API.
+        {t("progressOverview.errorLoadingData")}
       </div>
     );
   }
@@ -189,11 +194,10 @@ export const ProgressOverviewWidget = () => {
       <Card className="border-none bg-transparent shadow-none">
         <CardHeader className="px-0 pt-0">
           <CardTitle className="text-2xl font-bold tracking-tight">
-            Project Progress Overview
+            {t("progressOverview.title")}
           </CardTitle>
           <CardDescription>
-            Real-time snapshot of task distribution and bottlenecks from
-            Backlog.
+            {t("progressOverview.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0">
