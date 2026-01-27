@@ -21,27 +21,10 @@ const localeLabels: Record<string, string> = {
 export function LocaleToggle() {
   const { i18n } = useTranslation();
 
-  const handleChangeLanguage = async (lng: string) => {
-    await i18n.changeLanguage(lng);
-
-    if (typeof document !== "undefined") {
-      document.documentElement.lang = lng;
-    }
-
-    if (typeof document !== "undefined") {
-      const expires = new Date();
-      expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year
-      document.cookie = `NEXT_LOCALE=${lng};expires=${expires.toUTCString()};path=/;sameSite=lax`;
-
-      localStorage.setItem("i18nextLng", lng);
-    }
+  const handleChangeLanguage = (lng: string) => {
+     i18n.changeLanguage(lng);
+     localStorage.setItem("i18nextLng", lng);
   };
-
-  React.useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.documentElement.lang = i18n.language;
-    }
-  }, [i18n.language]);
 
   return (
     <DropdownMenu>

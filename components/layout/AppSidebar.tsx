@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useTranslation } from "react-i18next";
 import { LocaleToggle } from "@/components/locale-toggle";
+import Link from "next/link";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation();
@@ -87,7 +88,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <div className="flex items-center gap-2">
               <SidebarMenuButton size="lg" asChild className="flex-1">
-                <a href="/dashboard">
+                <Link href="/dashboard">
                   <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                     <Frame className="size-4" />
                   </div>
@@ -97,7 +98,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </span>
                     <span className="truncate text-xs">{t("app.subtitle")}</span>
                   </div>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </div>
           </SidebarMenuItem>
@@ -111,10 +112,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {data.overview.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title}>
-                  <a href={item.url}>
+                  <Link href={item.url}>
                     <item.icon />
                     <span>{item.title}</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -128,10 +129,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {data.performance.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title}>
-                  <a href={item.url}>
+                  <Link href={item.url}>
                     <item.icon />
                     <span>{item.title}</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
