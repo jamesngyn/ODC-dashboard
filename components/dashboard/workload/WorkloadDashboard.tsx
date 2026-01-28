@@ -10,6 +10,7 @@ import {
   calculateUSPCompleted,
 } from "@/lib/utils";
 import type { BacklogIssue } from "@/types/interfaces/common";
+import { TaskStatus } from "@/types/enums/common";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
 import { useTranslation } from "react-i18next";
 
@@ -58,8 +59,11 @@ export function WorkloadDashboard() {
 
   const estimateCompleted = useMemo(() => {
     const gtaskList = gtasks ?? [];
-    if (gtaskList.length === 0) return { completed: 0, total: 0 };
-    return calculateEstimateCompleted(gtaskList);
+    const closedGtasks = gtaskList.filter(
+      (g) => g.status.name === TaskStatus.Closed
+    );
+    if (closedGtasks.length === 0) return { completed: 0, total: 0 };
+    return calculateEstimateCompleted(closedGtasks);
   }, [gtasks]);
 
   const tasksCompleted = useMemo(() => {

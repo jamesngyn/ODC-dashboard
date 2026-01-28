@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { FlagIcon, Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,25 @@ const localeLabels: Record<string, string> = {
   vi: "Tiếng Việt",
   ja: "日本語",
 };
+
+const localeFlags: Record<string, string> = {
+  en: "🇺🇸",
+  vi: "🇻🇳",
+  ja: "🇯🇵",
+};
+
+const SUPPORTED_LOCALES = ["en", "vi", "ja"] as const;
+
+function getLocaleCode(locale: string): string {
+  const code = locale?.split("-")[0] ?? "en";
+  return SUPPORTED_LOCALES.includes(code as (typeof SUPPORTED_LOCALES)[number])
+    ? code
+    : "en";
+}
+
+function getLocaleFlag(locale: string): string {
+  return localeFlags[getLocaleCode(locale)];
+}
 
 export function LocaleToggle() {
   const { i18n } = useTranslation();
@@ -34,18 +52,31 @@ export function LocaleToggle() {
           size="icon"
           className="flex w-full items-center gap-2 border-none"
         >
-          <Languages className="h-[1.2rem] w-[1.2rem]" />
-          {localeLabels[i18n.language]}
+          <span
+            className="text-lg leading-none"
+            role="img"
+            aria-hidden
+          >
+            {getLocaleFlag(i18n.language)}
+          </span>
+          {localeLabels[getLocaleCode(i18n.language)]}
           <span className="sr-only">Toggle locale</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {Object.keys(localeLabels).map((lng) => (
+        {SUPPORTED_LOCALES.map((lng) => (
           <DropdownMenuItem
             key={lng}
             onClick={() => handleChangeLanguage(lng)}
-            className={i18n.language === lng ? "bg-accent" : ""}
+            className={getLocaleCode(i18n.language) === lng ? "bg-accent" : ""}
           >
+            <span
+              className="mr-2 text-lg leading-none"
+              role="img"
+              aria-hidden
+            >
+              {localeFlags[lng]}
+            </span>
             {localeLabels[lng]}
           </DropdownMenuItem>
         ))}
