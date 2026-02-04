@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { DashboardStats } from "@/types/dashboard";
@@ -13,6 +13,7 @@ import { isActualEndDateInRange } from "@/lib/utils";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
 import { useBacklogCategories } from "@/hooks/useBacklogCategories";
 import { useBacklogIssuesCountByCategories } from "@/hooks/useBacklogIssuesCountByCategory";
+import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
 import {
   Card,
   CardContent,
@@ -20,15 +21,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CommonSelect } from "@/components/ui/common-select";
 
 import { InsightCards } from "./InsightCards";
 import { StatusDonutChart } from "./StatusDonutChart";
 import { SummaryList } from "./SummaryList";
 import { useTranslation } from "react-i18next";
 
+const ALL_SPRINT_VALUE = "all";
+
 export const ProgressOverviewWidget = () => {
   const { t } = useTranslation();
-  const { issues, isLoading: isLoadingIssues, isError: isErrorIssues } = useBacklogIssues();
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<number | null>(null);
+
+  const { milestones, isLoading: isLoadingMilestones } = useBacklogMilestones();
+  const milestoneIds = useMemo<number[] | undefined>(
+    () => (selectedMilestoneId !== null ? [selectedMilestoneId] : undefined),
+    [selectedMilestoneId]
+  );
+
+  const { issues, isLoading: isLoadingIssues, isError: isErrorIssues } = useBacklogIssues({
+    milestoneIds,
+  });
   const { categories, isLoading: isLoadingCategories } = useBacklogCategories();
   const {
     categoryCounts,
@@ -36,6 +50,7 @@ export const ProgressOverviewWidget = () => {
     isError: isErrorCategoryCounts,
   } = useBacklogIssuesCountByCategories({
     categories,
+    milestoneIds,
     enabled: categories.length > 0,
   });
 
@@ -171,7 +186,25 @@ export const ProgressOverviewWidget = () => {
     };
   }, [issues, categories, categoryCounts]);
 
-  if (isLoadingIssues || isLoadingCategories || isLoadingCategoryCounts) {
+  const selectValue =
+    selectedMilestoneId === null ? ALL_SPRINT_VALUE : String(selectedMilestoneId);
+  const handleSprintChange = (value: string) => {
+    setSelectedMilestoneId(value === ALL_SPRINT_VALUE ? null : Number(value));
+  };
+  const sprintOptions = useMemo(
+    () => [
+      { value: ALL_SPRINT_VALUE, label: t("common.all") },
+      ...milestones.map((m) => ({ value: String(m.id), label: m.name })),
+    ],
+    [milestones, t]
+  );
+
+  if (
+    isLoadingIssues ||
+    isLoadingCategories ||
+    isLoadingCategoryCounts ||
+    isLoadingMilestones
+  ) {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="text-primary h-8 w-8 animate-spin" />
@@ -193,12 +226,24 @@ export const ProgressOverviewWidget = () => {
     <div className="space-y-6">
       <Card className="border-none bg-transparent shadow-none">
         <CardHeader className="px-0 pt-0">
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            {t("progressOverview.title")}
-          </CardTitle>
-          <CardDescription>
-            {t("progressOverview.description")}
-          </CardDescription>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold tracking-tight">
+                {t("progressOverview.title")}
+              </CardTitle>
+              <CardDescription>
+                {t("progressOverview.description")}
+              </CardDescription>
+            </div>
+            <CommonSelect
+              id="sprint-select"
+              value={selectValue}
+              onValueChange={handleSprintChange}
+              options={sprintOptions}
+              label={t("progressOverview.filterBySprint")}
+              triggerClassName="w-[180px]"
+            />
+          </div>
         </CardHeader>
         <CardContent className="px-0">
           <div className="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-10">

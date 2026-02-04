@@ -149,6 +149,7 @@
   "progressOverview": {
     "title": "プロジェクト進捗概要",
     "description": "Backlogからのタスク配分とボトルネックのリアルタイムスナップショット。",
+    "filterBySprint": "スプリント",
     "errorLoadingData": "Backlog APIからデータを読み込めませんでした。",
     "statusBreakdown": "ステータス内訳",
     "onTrack": "順調",

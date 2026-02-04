@@ -137,6 +137,8 @@ export interface GetBacklogIssuesOptions {
   issueTypeIds?: number[];
   /** Lọc theo category ID. Cần lấy id từ getBacklogCategories. */
   categoryIds?: number[];
+  /** Lọc theo milestone (sprint) ID. Nếu không truyền hoặc mảng rỗng = tất cả. */
+  milestoneIds?: number[];
   /** Số bản ghi tối đa mỗi request (mặc định 100, max 100). Nếu không set, sẽ fetch toàn bộ issues. */
   count?: number;
   /** Offset để paginate. Nếu không set và count không set, sẽ tự động fetch toàn bộ. */
@@ -153,7 +155,7 @@ export interface GetBacklogIssuesOptions {
 export const getBacklogIssues = async (
   options?: GetBacklogIssuesOptions
 ): Promise<BacklogIssue[]> => {
-  const { issueTypeIds, categoryIds, count, offset, singleBatch = false } = options || {};
+  const { issueTypeIds, categoryIds, milestoneIds, count, offset, singleBatch = false } = options || {};
 
   // Nếu singleBatch = true hoặc có offset/count được set rõ ràng, chỉ fetch một batch
   if (singleBatch || (count !== undefined && offset !== undefined)) {
@@ -168,6 +170,9 @@ export const getBacklogIssues = async (
     }
     if (categoryIds && categoryIds.length > 0) {
       params["categoryId[]"] = categoryIds;
+    }
+    if (milestoneIds && milestoneIds.length > 0) {
+      params["milestoneId[]"] = milestoneIds;
     }
     return sendGet(`${BACKLOG_BASE_URL}/api/v2/issues`, params);
   }
@@ -190,6 +195,9 @@ export const getBacklogIssues = async (
     }
     if (categoryIds && categoryIds.length > 0) {
       params["categoryId[]"] = categoryIds;
+    }
+    if (milestoneIds && milestoneIds.length > 0) {
+      params["milestoneId[]"] = milestoneIds;
     }
 
     const batch: BacklogIssue[] = await sendGet(
@@ -363,16 +371,24 @@ export const getBacklogIssuesCount = async (
   return response.count;
 };
 
+export interface GetBacklogIssuesCountByCategoryOptions {
+  /** Lọc theo milestone (sprint) ID. Nếu không truyền hoặc mảng rỗng = tất cả. */
+  milestoneIds?: number[];
+}
+
 /**
  * Đếm số lượng issues theo categoryId.
  * Sử dụng Count API để đếm hiệu quả.
  * @param categoryId - Category ID cần đếm
+ * @param options - milestoneIds để lọc theo sprint
  * @returns Số lượng issues thuộc category đó
  */
 export const getBacklogIssuesCountByCategory = async (
-  categoryId: number
+  categoryId: number,
+  options?: GetBacklogIssuesCountByCategoryOptions
 ): Promise<number> => {
   return getBacklogIssuesCount({
     categoryIds: [categoryId],
+    milestoneIds: options?.milestoneIds,
   });
 };

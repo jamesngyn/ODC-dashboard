@@ -15,91 +15,32 @@ import { BacklogIssue } from "@/types/interfaces/common";
 import { TaskStatus } from "@/types/enums/common";
 import { getRoleTypeLabel } from "@/constants/common";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
+import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
 import { useBacklogProjectMembers } from "@/hooks/useBacklogProjectMembers";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CommonSelect } from "@/components/ui/common-select";
 import { useTranslation } from "react-i18next";
+
+const ALL_SPRINT_VALUE = "all";
 
 import { PerformanceIndicators } from "./PerformanceIndicators";
 import { SummaryCard } from "./SummaryCard";
 import { TeamCostPerformanceTable } from "./TeamCostPerformanceTable";
 
-type PeriodOption =
-  | "all"
-  | "this-week"
-  | "last-week"
-  | "this-month"
-  | "last-month";
-
-// Helper functions to check date ranges
-function getDateRange(period: PeriodOption): {
-  start: Date | null;
-  end: Date | null;
-} {
-  const now = new Date();
-  now.setHours(23, 59, 59, 999);
-
-  switch (period) {
-    case "this-week": {
-      const start = new Date(now);
-      const dayOfWeek = start.getDay();
-      const diff = start.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Monday
-      start.setDate(diff);
-      start.setHours(0, 0, 0, 0);
-      return { start, end: now };
-    }
-    case "last-week": {
-      const end = new Date(now);
-      const dayOfWeek = end.getDay();
-      const diff = end.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Monday of this week
-      end.setDate(diff - 1);
-      end.setHours(23, 59, 59, 999);
-      const start = new Date(end);
-      start.setDate(start.getDate() - 6);
-      start.setHours(0, 0, 0, 0);
-      return { start, end };
-    }
-    case "this-month": {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      start.setHours(0, 0, 0, 0);
-      return { start, end: now };
-    }
-    case "last-month": {
-      const end = new Date(now.getFullYear(), now.getMonth(), 0);
-      end.setHours(23, 59, 59, 999);
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      start.setHours(0, 0, 0, 0);
-      return { start, end };
-    }
-    case "all":
-    default:
-      return { start: null, end: null };
-  }
-}
-
-function isDateInRange(
-  dateString: string | null,
-  start: Date | null,
-  end: Date | null
-): boolean {
-  if (!dateString) return false;
-  if (!start || !end) return true; // All dates if no range specified
-
-  const date = new Date(dateString);
-  return date >= start && date <= end;
-}
-
-
 export function CustomerValueDashboard() {
   const { t } = useTranslation();
-  const [period, setPeriod] = useState<PeriodOption>("all");
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<number | null>(
+    null
+  );
+  const milestoneIds = useMemo<number[] | undefined>(
+    () => (selectedMilestoneId !== null ? [selectedMilestoneId] : undefined),
+    [selectedMilestoneId]
+  );
+
   const { members, isLoading: isLoadingMembers } = useBacklogProjectMembers();
-  const { issues, isLoading: isLoadingIssues } = useBacklogIssues();
+  const { milestones, isLoading: isLoadingMilestones } = useBacklogMilestones();
+  const { issues, isLoading: isLoadingIssues } = useBacklogIssues({
+    milestoneIds,
+  });
 
 
   const teamData = useMemo<TeamMemberPerformance[]>(() => {
@@ -107,22 +48,13 @@ export function CustomerValueDashboard() {
       return [];
     }
 
-    const { start, end } = getDateRange(period);
+    // Billable: tất cả issues (không lọc theo kỳ)
+    const filteredIssues = issues;
 
-    // Billable: issues có start hoặc actualEnd trong kỳ (tuần/tháng)
-    const filteredIssues = issues.filter((issue: BacklogIssue) => {
-      return (
-        isDateInRange(issue.startDate, start, end) ||
-        isDateInRange(getActualEndDateFromIssue(issue), start, end)
-      );
-    });
-
-    // Earned: các task Closed và được đóng trong kỳ (theo mode) — tổng estimate; ngày đóng chỉ lấy Actual End-date
-    const closedInPeriodIssues = issues.filter((issue: BacklogIssue) => {
-      if (issue.status?.name !== TaskStatus.Closed) return false;
-      const closedDate = getActualEndDateFromIssue(issue);
-      return isDateInRange(closedDate, start, end);
-    });
+    // Earned: các task Closed — tổng estimate theo Actual End-date
+    const closedInPeriodIssues = issues.filter(
+      (issue: BacklogIssue) => issue.status?.name === TaskStatus.Closed
+    );
 
     const billableMap = new Map<number, number>();
     filteredIssues.forEach((issue: BacklogIssue) => {
@@ -162,7 +94,7 @@ export function CustomerValueDashboard() {
         };
       })
       .filter((member) => member.billableHours > 0 || member.earnedHours > 0);
-  }, [members, issues, period]);
+  }, [members, issues]);
 
   const summary = useMemo<CostPerformanceSummary>(() => {
     if (teamData.length === 0) {
@@ -249,7 +181,20 @@ export function CustomerValueDashboard() {
     ];
   }, [teamData, t]);
 
-  if (isLoadingMembers || isLoadingIssues) {
+  const sprintSelectValue =
+    selectedMilestoneId === null ? ALL_SPRINT_VALUE : String(selectedMilestoneId);
+  const handleSprintChange = (value: string) => {
+    setSelectedMilestoneId(value === ALL_SPRINT_VALUE ? null : Number(value));
+  };
+  const sprintOptions = useMemo(
+    () => [
+      { value: ALL_SPRINT_VALUE, label: t("common.all") },
+      ...milestones.map((m) => ({ value: String(m.id), label: m.name })),
+    ],
+    [milestones, t]
+  );
+
+  if (isLoadingMembers || isLoadingIssues || isLoadingMilestones) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
@@ -260,22 +205,15 @@ export function CustomerValueDashboard() {
   if (teamData.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-end">
-          <Select
-            value={period}
-            onValueChange={(value) => setPeriod(value as PeriodOption)}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={t("common.selectPeriod")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("common.all")}</SelectItem>
-              <SelectItem value="this-week">{t("common.thisWeek")}</SelectItem>
-              <SelectItem value="last-week">{t("common.lastWeek")}</SelectItem>
-              <SelectItem value="this-month">{t("common.thisMonth")}</SelectItem>
-              <SelectItem value="last-month">{t("common.lastMonth")}</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+          <CommonSelect
+            id="customer-value-sprint-select"
+            value={sprintSelectValue}
+            onValueChange={handleSprintChange}
+            options={sprintOptions}
+            label={t("progressOverview.filterBySprint")}
+            triggerClassName="w-[180px]"
+          />
         </div>
         <div className="flex min-h-[400px] items-center justify-center">
           <p className="text-muted-foreground text-sm">
@@ -288,23 +226,16 @@ export function CustomerValueDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Period Selector */}
-      <div className="flex items-center justify-end">
-        <Select
-          value={period}
-          onValueChange={(value) => setPeriod(value as PeriodOption)}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={t("common.selectPeriod")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("common.all")}</SelectItem>
-            <SelectItem value="this-week">{t("common.thisWeek")}</SelectItem>
-            <SelectItem value="last-week">{t("common.lastWeek")}</SelectItem>
-            <SelectItem value="this-month">{t("common.thisMonth")}</SelectItem>
-            <SelectItem value="last-month">{t("common.lastMonth")}</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Sprint Selector */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+        <CommonSelect
+          id="customer-value-sprint-select"
+          value={sprintSelectValue}
+          onValueChange={handleSprintChange}
+          options={sprintOptions}
+          label={t("progressOverview.filterBySprint")}
+          triggerClassName="w-[180px]"
+        />
       </div>
 
       {/* Main Content: Table and Summary */}

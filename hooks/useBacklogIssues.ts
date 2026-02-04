@@ -11,6 +11,8 @@ export interface UseBacklogIssuesOptions {
   issueTypeIds?: number[];
   /** Lọc theo tên issue type (vd: "Bug", "Gtask"). Sẽ tự động resolve thành issueTypeIds. */
   issueTypeName?: string;
+  /** Lọc theo milestone (sprint) ID. Không truyền hoặc mảng rỗng = tất cả. */
+  milestoneIds?: number[];
   count?: number;
   enabled?: boolean;
 }
@@ -19,6 +21,7 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
   const {
     issueTypeIds: providedIssueTypeIds,
     issueTypeName,
+    milestoneIds,
     count = 100,
     enabled = true,
   } = options ?? {};
@@ -46,6 +49,9 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
     resolvedIssueTypeIds?.length
       ? [...resolvedIssueTypeIds].sort((a, b) => a - b).join(",")
       : issueTypeName ?? "all",
+    milestoneIds?.length
+      ? [...milestoneIds].sort((a, b) => a - b).join(",")
+      : "all",
   ] as const;
 
   const {
@@ -55,7 +61,12 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
     error,
   } = useQuery<BacklogIssue[]>({
     queryKey,
-    queryFn: () => getBacklogIssues({ issueTypeIds: resolvedIssueTypeIds, count }),
+    queryFn: () =>
+      getBacklogIssues({
+        issueTypeIds: resolvedIssueTypeIds,
+        milestoneIds: milestoneIds?.length ? milestoneIds : undefined,
+        count,
+      }),
     enabled: enabled && (resolvedIssueTypeIds !== undefined || !issueTypeName),
   });
 

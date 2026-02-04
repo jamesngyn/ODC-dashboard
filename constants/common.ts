@@ -18,6 +18,7 @@ export const QUERY_KEYS = {
     ISSUES: ["backlog", "issues"] as const,
     ISSUE_TYPES: ["backlog", "issue-types"] as const,
     CATEGORIES: ["backlog", "categories"] as const,
+    MILESTONES: ["backlog", "milestones"] as const,
     DEFECT_DENSITY_BY_SPRINT: ["backlog", "defect-density-by-sprint"] as const,
     VELOCITY_BY_SPRINT: ["backlog", "velocity-by-sprint"] as const,
     PROJECT_MEMBERS: (projectId: string | number) =>

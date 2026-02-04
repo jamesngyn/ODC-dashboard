@@ -149,6 +149,7 @@
   "progressOverview": {
     "title": "Tổng quan tiến độ dự án",
     "description": "Ảnh chụp nhanh thời gian thực về phân bổ nhiệm vụ và điểm nghẽn từ Backlog.",
+    "filterBySprint": "Sprint",
     "errorLoadingData": "Không thể tải dữ liệu từ Backlog API.",
     "statusBreakdown": "Phân tích trạng thái",
     "onTrack": "Đúng tiến độ",

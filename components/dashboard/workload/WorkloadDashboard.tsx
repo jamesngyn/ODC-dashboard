@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import {
@@ -12,11 +12,15 @@ import {
 import type { BacklogIssue } from "@/types/interfaces/common";
 import { TaskStatus } from "@/types/enums/common";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
+import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
+import { CommonSelect } from "@/components/ui/common-select";
 import { useTranslation } from "react-i18next";
 
 import { HealthIndicators } from "./HealthIndicators";
 import { KeyAchievements } from "./KeyAchievements";
 import { MetricCard } from "./MetricCard";
+
+const ALL_SPRINT_VALUE = "all";
 
 function filterOutGtasks(
   allIssues: BacklogIssue[] | undefined,
@@ -32,17 +36,27 @@ function filterOutGtasks(
 
 export function WorkloadDashboard() {
   const { t } = useTranslation();
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<number | null>(
+    null
+  );
+  const milestoneIds = useMemo<number[] | undefined>(
+    () => (selectedMilestoneId !== null ? [selectedMilestoneId] : undefined),
+    [selectedMilestoneId]
+  );
+
+  const { milestones, isLoading: isLoadingMilestones } = useBacklogMilestones();
   // Fetch Gtasks trực tiếp với filter theo issueType
   const {
     issues: gtasks,
     isLoading: isLoadingGtasks,
     isError: isErrorGtasks,
-  } = useBacklogIssues({ issueTypeName: "Gtask" });
+  } = useBacklogIssues({ issueTypeName: "Gtask", milestoneIds });
   // Fetch tất cả issues để lấy regularTasks (các issues không phải Gtask)
   const { issues: allIssues, isLoading: isLoadingAll, isError: isErrorAll } =
-    useBacklogIssues();
+    useBacklogIssues({ milestoneIds });
 
-  const isLoading = isLoadingGtasks || isLoadingAll;
+  const isLoading =
+    isLoadingGtasks || isLoadingAll || isLoadingMilestones;
   const isError = isErrorGtasks || isErrorAll;
 
   // Lọc regularTasks từ allIssues bằng cách loại bỏ các Gtasks
@@ -76,6 +90,19 @@ export function WorkloadDashboard() {
     [regularTasks]
   );
 
+  const selectValue =
+    selectedMilestoneId === null ? ALL_SPRINT_VALUE : String(selectedMilestoneId);
+  const handleSprintChange = (value: string) => {
+    setSelectedMilestoneId(value === ALL_SPRINT_VALUE ? null : Number(value));
+  };
+  const sprintOptions = useMemo(
+    () => [
+      { value: ALL_SPRINT_VALUE, label: t("common.all") },
+      ...milestones.map((m) => ({ value: String(m.id), label: m.name })),
+    ],
+    [milestones, t]
+  );
+
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -98,6 +125,16 @@ export function WorkloadDashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+        <CommonSelect
+          id="workload-sprint-select"
+          value={selectValue}
+          onValueChange={handleSprintChange}
+          options={sprintOptions}
+          label={t("progressOverview.filterBySprint")}
+          triggerClassName="w-[180px]"
+        />
+      </div>
       {/* Top Row: Key Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard

@@ -6,6 +6,8 @@ import { BacklogCategoryItem } from "@/types/interfaces/common";
 
 export interface UseBacklogIssuesCountByCategoriesOptions {
   categories: BacklogCategoryItem[];
+  /** Lọc theo milestone (sprint) ID. Không truyền hoặc mảng rỗng = tất cả. */
+  milestoneIds?: number[];
   enabled?: boolean;
 }
 
@@ -17,7 +19,7 @@ export interface CategoryCount {
 export const useBacklogIssuesCountByCategories = (
   options: UseBacklogIssuesCountByCategoriesOptions
 ) => {
-  const { categories, enabled = true } = options;
+  const { categories, milestoneIds, enabled = true } = options;
 
   const queries = useQueries({
     queries: categories.map((category) => ({
@@ -26,8 +28,14 @@ export const useBacklogIssuesCountByCategories = (
         "count",
         "category",
         category.id,
+        milestoneIds?.length
+          ? [...milestoneIds].sort((a, b) => a - b).join(",")
+          : "all",
       ] as const,
-      queryFn: () => getBacklogIssuesCountByCategory(category.id),
+      queryFn: () =>
+        getBacklogIssuesCountByCategory(category.id, {
+          milestoneIds: milestoneIds?.length ? milestoneIds : undefined,
+        }),
       enabled: enabled && category.id > 0,
     })),
   });

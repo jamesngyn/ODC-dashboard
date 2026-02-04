@@ -149,6 +149,7 @@
   "progressOverview": {
     "title": "Project Progress Overview",
     "description": "Real-time snapshot of task distribution and bottlenecks from Backlog.",
+    "filterBySprint": "Sprint",
     "errorLoadingData": "Failed to load data from Backlog API.",
     "statusBreakdown": "Status Breakdown",
     "onTrack": "On Track",
