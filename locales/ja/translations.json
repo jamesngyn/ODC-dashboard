@@ -158,7 +158,10 @@
     "needsMonitoringDescription": "現在テスト中のタスク",
     "bottleneckDetected": "⚠️ボトルネック検出",
     "readyForUat": "UAT準備完了",
-    "readyForUatDescription": "ユーザー承認待ちのタスク"
+    "readyForUatDescription": "ユーザー承認待ちのタスク",
+    "viewInBacklog": "Backlogで見る",
+    "readyForRelease": "リリース準備完了",
+    "readyForReleaseDescription": "リリース段階のタスク"
   },
   "notFound": {
     "message": "ページが見つかりません",

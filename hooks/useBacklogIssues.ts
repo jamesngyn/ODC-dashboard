@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { getBacklogIssues, getBacklogIssueTypeIdByName } from "@/lib/api/backlog";
 import { BacklogIssue } from "@/types/interfaces/common";
+import { BacklogParentChildType } from "@/types/enums/common";
 import { useBacklogIssueTypes } from "./useBacklogIssueTypes";
 
 export interface UseBacklogIssuesOptions {
@@ -13,6 +14,8 @@ export interface UseBacklogIssuesOptions {
   issueTypeName?: string;
   /** Lọc theo milestone (sprint) ID. Không truyền hoặc mảng rỗng = tất cả. */
   milestoneIds?: number[];
+  /** Lọc parent-child (vd: ExcludeChild = chỉ Gtask + task không có con). */
+  parentChild?: BacklogParentChildType;
   count?: number;
   enabled?: boolean;
 }
@@ -22,6 +25,7 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
     issueTypeIds: providedIssueTypeIds,
     issueTypeName,
     milestoneIds,
+    parentChild,
     count = 100,
     enabled = true,
   } = options ?? {};
@@ -52,6 +56,7 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
     milestoneIds?.length
       ? [...milestoneIds].sort((a, b) => a - b).join(",")
       : "all",
+    parentChild ?? "all",
   ] as const;
 
   const {
@@ -65,6 +70,7 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
       getBacklogIssues({
         issueTypeIds: resolvedIssueTypeIds,
         milestoneIds: milestoneIds?.length ? milestoneIds : undefined,
+        parentChild,
         count,
       }),
     enabled: enabled && (resolvedIssueTypeIds !== undefined || !issueTypeName),

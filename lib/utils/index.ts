@@ -10,6 +10,7 @@ import {
   BacklogIssue,
 } from "@/types/interfaces/common";
 import { getActualEndDateFromIssue, mapBacklogCategoryToTaskStatus } from "@/lib/api/backlog";
+import configs from "@/constants/config";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -260,4 +261,25 @@ export function calculateOverallCompletionByEstimate(
 
   if (sumEstimate === 0) return 0;
   return Math.min(100, Math.max(0, (sumWeighted / sumEstimate) * 100));
+}
+
+/**
+ * URL trang tìm kiếm issue của Backlog (giao diện web), có thể filter sẵn theo category.
+ * Format: {base}/find/{projectKey}?limit=20&offset=0&projectId={id}&sort=UPDATED[&categoryId[]=...]
+ * @param categoryId - Category ID (vd: UAT, Release). Không truyền = mở trang find không filter category.
+ */
+export function getBacklogIssueListUrl(categoryId?: number): string {
+  const base = configs.BACKLOG_BASE_URL.replace(/\/+$/, "");
+  const path = `/find/${configs.BACKLOG_PROJECT_ID_OR_KEY}`;
+  const params = new URLSearchParams({
+    limit: "20",
+    offset: "0",
+    projectId: String(configs.BACKLOG_PROJECT_ID),
+    sort: "UPDATED",
+    simpleSearch: "true",
+  });
+  if (categoryId != null) {
+    params.set("componentId", String(categoryId));
+  }
+  return `${base}${path}?${params.toString()}`;
 }

@@ -4,13 +4,14 @@ import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { DashboardStats } from "@/types/dashboard";
-import { TaskStatus, TaskType } from "@/types/enums/common";
+import { BacklogCategory, BacklogParentChild, TaskStatus, TaskType } from "@/types/enums/common";
 import {
   getActualEndDateFromIssue,
   mapBacklogCategoryToTaskStatus,
 } from "@/lib/api/backlog";
-import { isActualEndDateInRange } from "@/lib/utils";
+import { isActualEndDateInRange, getBacklogIssueListUrl } from "@/lib/utils";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
+import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
 import { useBacklogCategories } from "@/hooks/useBacklogCategories";
 import { useBacklogIssuesCountByCategories } from "@/hooks/useBacklogIssuesCountByCategory";
 import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
@@ -40,8 +41,25 @@ export const ProgressOverviewWidget = () => {
     [selectedMilestoneId]
   );
 
+  const { issueTypes, isLoading: isLoadingIssueTypes } = useBacklogIssueTypes();
+  const progressIssueTypeIds = useMemo<number[]>(() => {
+    const task = issueTypes.find(
+      (t) => t.name.toLowerCase().trim() === "task"
+    );
+    const gtask = issueTypes.find(
+      (t) => t.name.toLowerCase().trim() === "gtask"
+    );
+    const ids: number[] = [];
+    if (task) ids.push(task.id);
+    if (gtask) ids.push(gtask.id);
+    return ids;
+  }, [issueTypes]);
+
   const { issues, isLoading: isLoadingIssues, isError: isErrorIssues } = useBacklogIssues({
     milestoneIds,
+    issueTypeIds: progressIssueTypeIds.length > 0 ? progressIssueTypeIds : undefined,
+    parentChild: BacklogParentChild.All,
+    enabled: progressIssueTypeIds.length > 0,
   });
   const { categories, isLoading: isLoadingCategories } = useBacklogCategories();
   const {
@@ -51,7 +69,9 @@ export const ProgressOverviewWidget = () => {
   } = useBacklogIssuesCountByCategories({
     categories,
     milestoneIds,
-    enabled: categories.length > 0,
+    issueTypeIds: progressIssueTypeIds.length > 0 ? progressIssueTypeIds : undefined,
+    parentChild: BacklogParentChild.All,
+    enabled: categories.length > 0 && progressIssueTypeIds.length > 0,
   });
 
   const { data, categoryDistribution } = useMemo<{
@@ -67,7 +87,7 @@ export const ProgressOverviewWidget = () => {
       return { data: null, categoryDistribution: [] };
     }
 
-    const totalTasks = issues.length;
+    const totalTasks = categoryCounts.reduce((sum, item) => sum + item.count, 0);
 
     // 1. Category Distribution Logic - Sử dụng counts từ API với categoryId filter
     // Tạo map từ categoryCounts để lookup nhanh
@@ -94,26 +114,14 @@ export const ProgressOverviewWidget = () => {
       };
     });
 
-    // 2. Status Distribution Logic (cho chart và insights)
-    const statusCounts = issues.reduce(
-      (acc, issue) => {
-        const status = mapBacklogCategoryToTaskStatus(issue.category);
-        acc[status] = (acc[status] || 0) + 1;
-        return acc;
-      },
-      {} as Record<TaskType, number>
-    );
-
-    const distribution = Object.values(TaskType).map((status) => ({
+    // Biểu đồ tròn vẽ từ list category và count của từng category
+    const distribution = categoryDistribution.map(({ status, count, percentage }) => ({
       status,
-      count: statusCounts[status] || 0,
-      percentage:
-        totalTasks > 0
-          ? Math.round(((statusCounts[status] || 0) / totalTasks) * 100)
-          : 0,
+      count,
+      percentage,
     }));
 
-    // 2. Key Insights Logic
+    // Key Insights Logic
     const onTrackCount = issues.filter((issue) => {
       const actualEndDate = getActualEndDateFromIssue(issue);
       // Task đúng hạn: có startDate, dueDate và ngày Actual End Date phải nằm trong khoảng đó và task đã Closed hoặc Resolved
@@ -134,32 +142,20 @@ export const ProgressOverviewWidget = () => {
       );
     }).length;
 
+    // Chỉ đếm task chưa Closed/Resolved (đang làm) vào monitoring; đã Closed/Resolved thì bỏ qua
     const monitorCount = issues.filter((issue) => {
       if (!issue.startDate || !issue.dueDate) {
         return false;
       }
-
       const isClosedOrResolved =
         issue.status.name === TaskStatus.Closed ||
         issue.status.name === TaskStatus.Resolved;
-
-      if (!isClosedOrResolved) {
-        return true;
-      }
-
-      const actualEndDate = getActualEndDateFromIssue(issue);
-      if (!actualEndDate) {
-        return true;
-      }
-
-      // Nếu đã Closed/Resolved và có actualEndDate nhưng không nằm trong khoảng [startDate, dueDate] -> cần monitoring
-      return !isActualEndDateInRange(
-        issue.startDate,
-        issue.dueDate,
-        actualEndDate
-      );
+      return !isClosedOrResolved;
     }).length;
-    const uatReadyCount = statusCounts[TaskType.UAT] || 0;
+    const uatReadyCount =
+      categoryDistribution.find((c) => c.status === TaskType.UAT)?.count ?? 0;
+    const releaseReadyCount =
+      categoryDistribution.find((c) => c.status === TaskType.Release)?.count ?? 0;
 
     return {
       data: {
@@ -180,6 +176,9 @@ export const ProgressOverviewWidget = () => {
           uatReady: {
             count: uatReadyCount,
           },
+          releaseReady: {
+            count: releaseReadyCount,
+          },
         },
       },
       categoryDistribution,
@@ -199,7 +198,22 @@ export const ProgressOverviewWidget = () => {
     [milestones, t]
   );
 
+  const backlogLinks = useMemo(() => {
+    const uatCategory = categories.find(
+      (c) => c.name.trim().toLowerCase() === BacklogCategory.UAT.toLowerCase()
+    );
+    const releaseCategory = categories.find(
+      (c) =>
+        c.name.trim().toLowerCase() === BacklogCategory.Release.toLowerCase()
+    );
+    return {
+      uat: uatCategory ? getBacklogIssueListUrl(uatCategory.id) : null,
+      release: releaseCategory ? getBacklogIssueListUrl(releaseCategory.id) : null,
+    };
+  }, [categories]);
+
   if (
+    isLoadingIssueTypes ||
     isLoadingIssues ||
     isLoadingCategories ||
     isLoadingCategoryCounts ||
@@ -259,7 +273,7 @@ export const ProgressOverviewWidget = () => {
           </div>
 
           {/* Key Insights Section */}
-          <InsightCards insights={data.insights} />
+          <InsightCards insights={data.insights} backlogLinks={backlogLinks} />
         </CardContent>
       </Card>
     </div>

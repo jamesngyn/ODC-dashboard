@@ -1,6 +1,6 @@
 import configs from "@/constants/config";
 
-import { BacklogCategory, TaskType } from "@/types/enums/common";
+import { BacklogCategory, BacklogParentChildType, TaskType } from "@/types/enums/common";
 
 import { sendGet } from "./axios";
 import { BacklogIssue, BacklogIssueType, BacklogMilestone, BacklogUser, BacklogCategoryItem } from "@/types/interfaces/common";
@@ -8,6 +8,7 @@ import { BacklogIssue, BacklogIssueType, BacklogMilestone, BacklogUser, BacklogC
 const BACKLOG_API_KEY = configs.BACKLOG_API_KEY;
 const BACKLOG_BASE_URL = configs.BACKLOG_BASE_URL.replace(/\/+$/, "");
 const BACKLOG_PROJECT_ID = configs.BACKLOG_PROJECT_ID;
+
 
 
 
@@ -145,6 +146,11 @@ export interface GetBacklogIssuesOptions {
   offset?: number;
   /** Nếu true, chỉ fetch một batch (dùng count và offset). Mặc định false - fetch toàn bộ. */
   singleBatch?: boolean;
+  /**
+   * Lọc theo quan hệ parent-child. 0=All, 1=Exclude Child, 2=Child only, 3=Neither Parent nor Child, 4=Parent only.
+   * @see https://developer.nulab.com/docs/backlog/api/2/count-issue/
+   */
+  parentChild?: BacklogParentChildType;
 }
 
 /**
@@ -155,7 +161,7 @@ export interface GetBacklogIssuesOptions {
 export const getBacklogIssues = async (
   options?: GetBacklogIssuesOptions
 ): Promise<BacklogIssue[]> => {
-  const { issueTypeIds, categoryIds, milestoneIds, count, offset, singleBatch = false } = options || {};
+  const { issueTypeIds, categoryIds, milestoneIds, count, offset, singleBatch = false, parentChild } = options || {};
 
   // Nếu singleBatch = true hoặc có offset/count được set rõ ràng, chỉ fetch một batch
   if (singleBatch || (count !== undefined && offset !== undefined)) {
@@ -173,6 +179,9 @@ export const getBacklogIssues = async (
     }
     if (milestoneIds && milestoneIds.length > 0) {
       params["milestoneId[]"] = milestoneIds;
+    }
+    if (parentChild !== undefined) {
+      params.parentChild = parentChild;
     }
     return sendGet(`${BACKLOG_BASE_URL}/api/v2/issues`, params);
   }
@@ -198,6 +207,9 @@ export const getBacklogIssues = async (
     }
     if (milestoneIds && milestoneIds.length > 0) {
       params["milestoneId[]"] = milestoneIds;
+    }
+    if (parentChild !== undefined) {
+      params.parentChild = parentChild;
     }
 
     const batch: BacklogIssue[] = await sendGet(
@@ -321,6 +333,11 @@ export interface GetBacklogIssuesCountOptions {
   assigneeIds?: number[];
   /** Keyword search. */
   keyword?: string;
+  /**
+   * Lọc theo quan hệ parent-child. 0=All, 1=Exclude Child, 2=Child only, 3=Neither Parent nor Child, 4=Parent only.
+   * @see https://developer.nulab.com/docs/backlog/api/2/count-issue/
+   */
+  parentChild?: BacklogParentChildType;
 }
 
 interface BacklogIssuesCountResponse {
@@ -362,6 +379,9 @@ export const getBacklogIssuesCount = async (
   if (options?.keyword) {
     params.keyword = options.keyword;
   }
+  if (options?.parentChild !== undefined) {
+    params.parentChild = options.parentChild;
+  }
 
   const response = (await sendGet(
     `${BACKLOG_BASE_URL}/api/v2/issues/count`,
@@ -374,6 +394,10 @@ export const getBacklogIssuesCount = async (
 export interface GetBacklogIssuesCountByCategoryOptions {
   /** Lọc theo milestone (sprint) ID. Nếu không truyền hoặc mảng rỗng = tất cả. */
   milestoneIds?: number[];
+  /** Lọc parent-child (vd: ExcludeChild để chỉ đếm Gtask + task không có con). */
+  parentChild?: BacklogParentChildType;
+  /** Lọc theo issue type ID (vd: Task, Gtask). */
+  issueTypeIds?: number[];
 }
 
 /**
@@ -390,5 +414,7 @@ export const getBacklogIssuesCountByCategory = async (
   return getBacklogIssuesCount({
     categoryIds: [categoryId],
     milestoneIds: options?.milestoneIds,
+    parentChild: options?.parentChild,
+    issueTypeIds: options?.issueTypeIds,
   });
 };

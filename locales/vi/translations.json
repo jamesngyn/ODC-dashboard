@@ -158,7 +158,10 @@
     "needsMonitoringDescription": "Nhiệm vụ hiện đang trong giai đoạn Kiểm thử",
     "bottleneckDetected": "⚠️ Phát hiện điểm nghẽn",
     "readyForUat": "Sẵn sàng cho UAT",
-    "readyForUatDescription": "Nhiệm vụ đang chờ chấp nhận của người dùng"
+    "readyForUatDescription": "Nhiệm vụ đang chờ chấp nhận của người dùng",
+    "viewInBacklog": "Xem trong Backlog",
+    "readyForRelease": "Sẵn sàng Release",
+    "readyForReleaseDescription": "Nhiệm vụ ở giai đoạn Release"
   },
   "notFound": {
     "message": "Trang không tồn tại",

@@ -158,7 +158,10 @@
     "needsMonitoringDescription": "Tasks currently in Testing",
     "bottleneckDetected": "⚠️ Bottleneck Detected",
     "readyForUat": "Ready for UAT",
-    "readyForUatDescription": "Tasks waiting for user acceptance"
+    "readyForUatDescription": "Tasks waiting for user acceptance",
+    "viewInBacklog": "View in Backlog",
+    "readyForRelease": "Ready for Release",
+    "readyForReleaseDescription": "Tasks in Release phase"
   },
   "notFound": {
     "message": "Page not found",

@@ -26,5 +26,8 @@ export interface DashboardStats {
     uatReady: {
       count: number;
     };
+    releaseReady: {
+      count: number;
+    };
   };
 }
