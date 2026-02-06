@@ -4,6 +4,12 @@ export interface VelocityBySprintPoint {
   completed: number;
 }
 
+/** Kết quả velocity theo sprint: hours (estimatedHours) và USP (point). */
+export interface VelocityBySprintResult {
+  hours: VelocityBySprintPoint[];
+  usp: VelocityBySprintPoint[];
+}
+
 export interface SprintSummaryData {
   currentSprint: string;
   duration: string;

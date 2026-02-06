@@ -4,35 +4,20 @@ import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import {
-  calculateEstimateCompleted,
   calculateOverallCompletionByEstimate,
   calculateTasksCompleted,
   calculateUSPCompleted,
 } from "@/lib/utils";
-import type { BacklogIssue } from "@/types/interfaces/common";
-import { TaskStatus } from "@/types/enums/common";
+import { BacklogParentChild, TaskStatus } from "@/types/enums/common";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
 import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
 import { CommonSelect } from "@/components/ui/common-select";
 import { useTranslation } from "react-i18next";
 
-import { HealthIndicators } from "./HealthIndicators";
 import { KeyAchievements } from "./KeyAchievements";
 import { MetricCard } from "./MetricCard";
 
 const ALL_SPRINT_VALUE = "all";
-
-function filterOutGtasks(
-  allIssues: BacklogIssue[] | undefined,
-  gtasks: BacklogIssue[]
-): BacklogIssue[] {
-  if (!allIssues || allIssues.length === 0) return [];
-  if (gtasks.length === 0) return allIssues;
-
-  // Tạo Set các Gtask IDs để lookup nhanh
-  const gtaskIds = new Set(gtasks.map((g) => g.id));
-  return allIssues.filter((issue) => !gtaskIds.has(issue.id));
-}
 
 export function WorkloadDashboard() {
   const { t } = useTranslation();
@@ -45,49 +30,49 @@ export function WorkloadDashboard() {
   );
 
   const { milestones, isLoading: isLoadingMilestones } = useBacklogMilestones();
-  // Fetch Gtasks trực tiếp với filter theo issueType
   const {
-    issues: gtasks,
-    isLoading: isLoadingGtasks,
-    isError: isErrorGtasks,
-  } = useBacklogIssues({ issueTypeName: "Gtask", milestoneIds });
-  // Fetch tất cả issues để lấy regularTasks (các issues không phải Gtask)
-  const { issues: allIssues, isLoading: isLoadingAll, isError: isErrorAll } =
-    useBacklogIssues({ milestoneIds });
+    issues,
+    isLoading: isLoadingIssues,
+    isError: isErrorIssues,
+  } = useBacklogIssues({
+    milestoneIds,
+    parentChild: BacklogParentChild.All,
+  });
 
-  const isLoading =
-    isLoadingGtasks || isLoadingAll || isLoadingMilestones;
-  const isError = isErrorGtasks || isErrorAll;
+  const isLoading = isLoadingIssues || isLoadingMilestones;
+  const isError = isErrorIssues;
 
-  // Lọc regularTasks từ allIssues bằng cách loại bỏ các Gtasks
-  const regularTasks = useMemo(
-    () => filterOutGtasks(allIssues, gtasks ?? []),
-    [allIssues, gtasks]
-  );
+  const issuesList = issues ?? [];
 
+  // Tất cả metric đều tính trên toàn bộ issues trong sprint (không lọc Gtask)
   const overallCompletion = useMemo(() => {
-    const gtaskList = gtasks ?? [];
-    if (gtaskList.length === 0) return 0;
-    return calculateOverallCompletionByEstimate(gtaskList);
-  }, [gtasks]);
+    if (issuesList.length === 0) return 0;
+    return calculateOverallCompletionByEstimate(issuesList);
+  }, [issuesList]);
 
   const estimateCompleted = useMemo(() => {
-    const gtaskList = gtasks ?? [];
-    const closedGtasks = gtaskList.filter(
-      (g) => g.status.name === TaskStatus.Closed
+    const sumEstimate = (list: typeof issuesList) =>
+      list.reduce((s, issue) => s + Math.max(0, issue.estimatedHours ?? 0), 0);
+    const closedIssues = issuesList.filter(
+      (issue) => issue.status.name === TaskStatus.Closed
     );
-    if (closedGtasks.length === 0) return { completed: 0, total: 0 };
-    return calculateEstimateCompleted(closedGtasks);
-  }, [gtasks]);
+    const completed = sumEstimate(closedIssues);
+    const total = sumEstimate(issuesList);
+    if (total === 0) return { completed: 0, total: 0 };
+    return {
+      completed: Math.round(completed),
+      total: Math.round(total),
+    };
+  }, [issuesList]);
 
-  const tasksCompleted = useMemo(() => {
-    if (regularTasks.length === 0) return { completed: 0, total: 0 };
-    return calculateTasksCompleted(regularTasks);
-  }, [regularTasks]);
+  const tasksCompleted = useMemo(
+    () => calculateTasksCompleted(issuesList),
+    [issuesList]
+  );
 
   const uspCompleted = useMemo(
-    () => calculateUSPCompleted(regularTasks),
-    [regularTasks]
+    () => calculateUSPCompleted(issuesList),
+    [issuesList]
   );
 
   const selectValue =
@@ -141,32 +126,45 @@ export function WorkloadDashboard() {
           title={t("workload.overallCompletion")}
           mainValue={`${completionValue}%`}
           progress={completionValue}
+          accentClassName="border-l-4 border-l-emerald-500"
+          formulaInput={t("workload.formulaOverallCompletionInput")}
+          formulaExpression={t("workload.formulaOverallCompletionExpression")}
+          formulaRatio={t("workload.formulaOverallCompletionRatio")}
         />
         <MetricCard
           title={t("workload.estimateCompleted")}
           mainValue={estimateCompleted.completed.toString()}
           subValue={estimateCompleted.total.toString()}
           subLabel={t("workload.totalHours")}
+          accentClassName="border-l-4 border-l-amber-500"
+          formulaInput={t("workload.formulaEstimateCompletedInput")}
+          formulaExpression={t("workload.formulaEstimateCompletedExpression")}
         />
         <MetricCard
           title={t("workload.tasksCompleted")}
           mainValue={tasksCompleted.completed.toString()}
           subValue={tasksCompleted.total.toString()}
           subLabel={t("workload.totalTasks")}
+          accentClassName="border-l-4 border-l-sky-500"
+          formulaInput={t("workload.formulaTasksCompletedInput")}
+          formulaExpression={t("workload.formulaTasksCompletedExpression")}
         />
         <MetricCard
           title={t("workload.uspCompleted")}
           mainValue={uspCompleted.completed.toString()}
           subValue={uspCompleted.total.toString()}
           subLabel={t("workload.totalUsp")}
+          accentClassName="border-l-4 border-l-violet-500"
+          formulaInput={t("workload.formulaUspCompletedInput")}
+          formulaExpression={t("workload.formulaUspCompletedExpression")}
         />
       </div>
 
       {/* Bottom Row: Health & Achievements */}
       <div className="grid gap-4 md:grid-cols-7">
-        <div className="col-span-3">
+        {/* <div className="col-span-3">
           <HealthIndicators />
-        </div>
+        </div> */}
         <div className="col-span-4">
           <KeyAchievements />
         </div>

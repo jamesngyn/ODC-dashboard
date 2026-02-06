@@ -291,6 +291,10 @@ export interface GetBacklogIssuesByMilestoneOptions {
   issueTypeIds?: number[];
   /** Số bản ghi tối đa (mặc định 100). */
   count?: number;
+  /**
+   * Lọc theo quan hệ parent-child. 0=All, 1=Exclude Child, 2=Child only, 3=Neither Parent nor Child, 4=Parent only.
+   */
+  parentChild?: BacklogParentChildType;
 }
 
 /**
@@ -304,16 +308,18 @@ export interface GetBacklogIssuesByMilestoneOptions {
 export const getBacklogIssuesByMilestone = (
   options: GetBacklogIssuesByMilestoneOptions
 ): Promise<BacklogIssue[]> => {
-  const { milestoneIds, issueTypeIds, count = 100 } = options;
+  const { milestoneIds, issueTypeIds, count = 100, parentChild } = options;
   const params: Record<string, string | number | number[] | string[] | undefined> = {
     apiKey: BACKLOG_API_KEY,
     "projectId[]": [BACKLOG_PROJECT_ID],
     "milestoneId[]": milestoneIds,
-    // "versionId[]": milestoneIds,
     count,
   };
   if (issueTypeIds && issueTypeIds.length > 0) {
     params["issueTypeId[]"] = issueTypeIds;
+  }
+  if (parentChild !== undefined) {
+    params.parentChild = parentChild;
   }
   return sendGet(`${BACKLOG_BASE_URL}/api/v2/issues`, params);
 };

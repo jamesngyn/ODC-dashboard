@@ -1,50 +1,32 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
-
-import type { QualityInsightItem } from "@/types/interfaces/quality-kpi";
-
-const iconMap = {
-  success: CheckCircle2,
-  warning: AlertTriangle,
-  info: Info,
-};
-
-const iconColorMap = {
-  success: "text-green-500",
-  warning: "text-yellow-500",
-  info: "text-blue-500",
-};
+import { Textarea } from "@/components/ui/textarea";
+import { useTranslation } from "react-i18next";
 
 interface QualityInsightsCardProps {
-  data: QualityInsightItem[];
+  value: string;
+  onValueChange: (value: string) => void;
 }
 
-export function QualityInsightsCard({ data }: QualityInsightsCardProps) {
+export function QualityInsightsCard({ value, onValueChange }: QualityInsightsCardProps) {
+  const { t } = useTranslation();
+
   return (
     <Card className="bg-card text-card-foreground border-border border-gray-200">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold">
-          Quality Insights (Nghiên cứu sau)
+          {t("qualityKpi.qualityInsights")}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-3">
-          {data.map((item, index) => {
-            const Icon = iconMap[item.type];
-            const colorClass = iconColorMap[item.type];
-            return (
-              <li key={index} className="flex items-start gap-2">
-                <Icon
-                  className={`h-4 w-4 shrink-0 mt-0.5 ${colorClass}`}
-                  aria-hidden
-                />
-                <span className="text-sm text-muted-foreground">{item.text}</span>
-              </li>
-            );
-          })}
-        </ul>
+        <Textarea
+          value={value}
+          onChange={(e) => onValueChange(e.target.value)}
+          placeholder={t("qualityKpi.qualityInsightsPlaceholder")}
+          className="min-h-[120px] resize-y"
+          aria-label={t("qualityKpi.qualityInsights")}
+        />
       </CardContent>
     </Card>
   );

@@ -4,22 +4,30 @@ import {
   getBacklogIssueTypeIdByName,
 } from "@/lib/api/backlog";
 import { getPointFromIssue } from "@/lib/utils";
-import { TaskStatus } from "@/types/enums/common";
+import { BacklogParentChild, TaskStatus } from "@/types/enums/common";
 import type {
   BurndownDayPoint,
   ForecastData,
   KeyInsightItem,
   SprintSummaryData,
   VelocityBySprintPoint,
+  VelocityBySprintResult,
 } from "@/types/interfaces/velocity";
 
 const VELOCITY_SPRINT_LIMIT = 6;
 
-export async function fetchVelocityBySprint(): Promise<VelocityBySprintPoint[]> {
-  const [milestones, gtaskTypeId] = await Promise.all([
+/** Gtask + Task (parentChild = all). Chỉ tính task có category Release và status Closed. Trả về hours estimate và USP (point) theo sprint. */
+export async function fetchVelocityBySprint(): Promise<VelocityBySprintResult> {
+  const [milestones, gtaskTypeId, taskTypeId] = await Promise.all([
     getBacklogMilestones(),
     getBacklogIssueTypeIdByName("Gtask"),
+    getBacklogIssueTypeIdByName("Task"),
   ]);
+
+  const issueTypeIds: number[] = [];
+  if (gtaskTypeId) issueTypeIds.push(gtaskTypeId);
+  if (taskTypeId && taskTypeId !== gtaskTypeId) issueTypeIds.push(taskTypeId);
+  if (issueTypeIds.length === 0) return { hours: [], usp: [] };
 
   const sorted = [...milestones]
     .filter((m) => !m.archived)
@@ -29,26 +37,47 @@ export async function fetchVelocityBySprint(): Promise<VelocityBySprintPoint[]> 
       return a.releaseDueDate.localeCompare(b.releaseDueDate);
     });
   const last = sorted.slice(-VELOCITY_SPRINT_LIMIT);
-  if (last.length === 0) return [];
+  if (last.length === 0) return { hours: [], usp: [] };
 
-  const points: VelocityBySprintPoint[] = [];
+  const hoursPoints: VelocityBySprintPoint[] = [];
+  const uspPoints: VelocityBySprintPoint[] = [];
+
   for (const m of last) {
-    // Lấy Gtask issues trực tiếp với filter theo issueTypeIds
-    const gtasks = await getBacklogIssuesByMilestone({
+    const issues = await getBacklogIssuesByMilestone({
       milestoneIds: [m.id],
-      issueTypeIds: gtaskTypeId ? [gtaskTypeId] : undefined,
+      issueTypeIds,
       count: 100,
+      parentChild: BacklogParentChild.All,
     });
-    const committed = gtasks.reduce(
+    // Chỉ tính task vừa có category Release, vừa status Closed
+    const closedRelease = issues.filter(
+      (i) =>
+        i.status?.name === TaskStatus.Closed &&
+        (i.category?.some((c) => c.name === "Release") ?? false)
+    );
+
+    const hoursClosed = closedRelease.reduce(
+      (sum, i) => sum + Math.max(0, i.estimatedHours ?? 0),
+      0
+    );
+    hoursPoints.push({
+      sprint: m.name,
+      committed: Math.round(hoursClosed * 10) / 10,
+      completed: Math.round(hoursClosed * 10) / 10,
+    });
+
+    const uspClosed = closedRelease.reduce(
       (sum, i) => sum + getPointFromIssue(i),
       0
     );
-    const completed = gtasks
-      .filter((i) => i.status?.name === TaskStatus.Closed)
-      .reduce((sum, i) => sum + getPointFromIssue(i), 0);
-    points.push({ sprint: m.name, committed, completed });
+    uspPoints.push({
+      sprint: m.name,
+      committed: uspClosed,
+      completed: uspClosed,
+    });
   }
-  return points;
+
+  return { hours: hoursPoints, usp: uspPoints };
 }
 
 export function buildSprintSummary(
@@ -56,15 +85,33 @@ export function buildSprintSummary(
 ): SprintSummaryData | null {
   if (data.length === 0) return null;
   const last = data[data.length - 1];
+  return buildSprintSummaryFromPoint(last);
+}
+
+/**
+ * Build sprint summary for a specific sprint (for filter).
+ */
+export function buildSprintSummaryForSprint(
+  data: VelocityBySprintPoint[],
+  sprintName: string
+): SprintSummaryData | null {
+  const point = data.find((d) => d.sprint === sprintName);
+  if (!point) return null;
+  return buildSprintSummaryFromPoint(point);
+}
+
+function buildSprintSummaryFromPoint(
+  point: VelocityBySprintPoint
+): SprintSummaryData {
   const completionPercent =
-    last.committed > 0
-      ? Math.round((last.completed / last.committed) * 100)
+    point.committed > 0
+      ? Math.round((point.completed / point.committed) * 100)
       : 0;
   return {
-    currentSprint: last.sprint,
+    currentSprint: point.sprint,
     duration: "2 weeks",
-    committed: last.committed,
-    completed: last.completed,
+    committed: point.committed,
+    completed: point.completed,
     completionPercent,
   };
 }

@@ -1,31 +1,49 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 
+import { CommonSelect } from "@/components/ui/common-select";
 import { useVelocityBySprint } from "@/hooks/useVelocityBySprint";
 import {
   buildBurndownFromSprint,
   buildForecast,
   buildKeyInsights,
-  buildSprintSummary,
+  buildSprintSummaryForSprint,
 } from "@/lib/velocity";
-
+import { useTranslation } from "react-i18next";
 
 import { ForecastCard } from "./ForecastCard";
 import { KeyInsightsCard } from "./KeyInsightsCard";
 import { SprintBurndownChart } from "./SprintBurndownChart";
 import { SprintSummaryCard } from "./SprintSummaryCard";
 import { SprintVelocityTrendChart } from "./SprintVelocityTrendChart";
-import { useTranslation } from "react-i18next";
 
 const REMAINING_WORK_DEFAULT = 160;
 
 export function VelocityDashboard() {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useVelocityBySprint();
+  const [selectedSprint, setSelectedSprint] = useState<string>("");
+  const { data, dataHours, dataUSP, isLoading, isError } = useVelocityBySprint();
 
-  const sprintSummary = useMemo(() => buildSprintSummary(data), [data]);
+  const sprintOptions = useMemo(
+    () => data.map((d) => ({ value: d.sprint, label: d.sprint })),
+    [data]
+  );
+  const effectiveSprint = useMemo(
+    () =>
+      data.length > 0
+        ? selectedSprint || data[data.length - 1].sprint
+        : null,
+    [data, selectedSprint]
+  );
+  const sprintSummary = useMemo(
+    () =>
+      effectiveSprint
+        ? buildSprintSummaryForSprint(data, effectiveSprint)
+        : null,
+    [data, effectiveSprint]
+  );
 
   const burndownData = useMemo(() => {
     if (!sprintSummary) return [];
@@ -61,18 +79,38 @@ export function VelocityDashboard() {
     );
   }
 
+  const sprintSelectValue =
+    effectiveSprint ?? (sprintOptions[0]?.value ?? "");
+
   return (
     <div className="space-y-6">
-     
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+        <CommonSelect
+          id="velocity-sprint-select"
+          value={sprintSelectValue}
+          onValueChange={setSelectedSprint}
+          options={sprintOptions}
+          label={t("progressOverview.filterBySprint")}
+          triggerClassName="w-[180px]"
+        />
+      </div>
 
-      {/* Top: Velocity Trend + Sprint Summary */}
+      {/* Top: Chart 1 Hours + Chart 2 USP + Sprint Summary */}
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="md:col-span-2">
+        <div>
           <div className="rounded-xl border border-gray-200 bg-card p-4 text-card-foreground">
             <h2 className="mb-4 text-sm font-medium">
-              {t("velocity.sprintVelocityTrend")}
+              {t("velocity.hoursEstimateBySprint")}
             </h2>
-            <SprintVelocityTrendChart data={data} />
+            <SprintVelocityTrendChart data={dataHours} />
+          </div>
+        </div>
+        <div>
+          <div className="rounded-xl border border-gray-200 bg-card p-4 text-card-foreground">
+            <h2 className="mb-4 text-sm font-medium">
+              {t("velocity.uspEstimateBySprint")}
+            </h2>
+            <SprintVelocityTrendChart data={dataUSP} />
           </div>
         </div>
         <div>

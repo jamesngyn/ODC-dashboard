@@ -55,3 +55,18 @@ export const BacklogParentChild = {
 
 export type BacklogParentChildType =
   (typeof BacklogParentChild)[keyof typeof BacklogParentChild];
+
+/**
+ * Bug Type (custom field "Bug Type" trong Backlog).
+ * - Internal Bug: Tìm thấy bởi QA/Dev nội bộ
+ * - External Bug: Tìm thấy bởi Client/UAT
+ * - Leakage: Bug tìm thấy trên Production
+ */
+export const BugType = {
+  InternalBug: "Internal Bug",
+  ExternalBug: "External Bug",
+  Leakage: "Leakage",
+} as const;
+
+export type BugTypeValue =
+  (typeof BugType)[keyof typeof BugType];

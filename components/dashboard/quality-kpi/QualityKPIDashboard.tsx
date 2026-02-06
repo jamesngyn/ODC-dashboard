@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -11,17 +11,19 @@ import {
 import {
   calculateDefectDensity,
   calculateDefectLeakage,
+  calculateRemovalEfficiency,
   computeDefectTrendsByWeek,
   getBugTypeFromIssue,
   getSeverityCountsFromAllBugs,
   getSeverityCountsFromBugs,
+  getSeverityCountsFromInternalBugs,
   getSeverityCountsFromLeakageBugs,
 } from "@/lib/quality-kpi";
+import { BugType } from "@/types/enums/common";
 import { calculateTotalActualHours } from "@/lib/utils";
 import type {
   QualityMetricCardData,
   TestingCoverageItem,
-  QualityInsightItem,
 } from "@/types/interfaces/quality-kpi";
 
 import { DefectDensityChart } from "./DefectDensityChart";
@@ -33,11 +35,24 @@ import { QualityInsightsCard } from "./QualityInsightsCard";
 import { useDefectDensityBySprint } from "@/hooks/useDefectDensityBySprint";
 import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
+import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
+import { CommonSelect } from "@/components/ui/common-select";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+const ALL_SPRINT_VALUE = "all";
+
 export function QualityKPIDashboard() {
   const { t } = useTranslation();
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<number | null>(
+    null
+  );
+  const milestoneIds = useMemo<number[] | undefined>(
+    () => (selectedMilestoneId !== null ? [selectedMilestoneId] : undefined),
+    [selectedMilestoneId]
+  );
+
+  const { milestones } = useBacklogMilestones();
   const {
     issueTypes,
     isLoading: isLoadingTypes,
@@ -51,10 +66,24 @@ export function QualityKPIDashboard() {
     isError: isErrorIssues,
   } = useBacklogIssues({
     issueTypeIds: bugId != null ? [bugId] : undefined,
+    milestoneIds,
     enabled: bugId != null,
   });
   const isLoading = isLoadingTypes || isLoadingIssues;
   const isError = isErrorTypes || isErrorIssues;
+
+  const sprintSelectValue =
+    selectedMilestoneId === null ? ALL_SPRINT_VALUE : String(selectedMilestoneId);
+  const handleSprintChange = (value: string) => {
+    setSelectedMilestoneId(value === ALL_SPRINT_VALUE ? null : Number(value));
+  };
+  const sprintOptions = useMemo(
+    () => [
+      { value: ALL_SPRINT_VALUE, label: t("common.all") },
+      ...milestones.map((m) => ({ value: String(m.id), label: m.name })),
+    ],
+    [milestones, t]
+  );
 
   const testingCoverageData: TestingCoverageItem[] = [
     { label: t("qualityKpi.unitTesting"), value: 94, barColor: "#14b8a6" },
@@ -62,12 +91,7 @@ export function QualityKPIDashboard() {
     { label: t("qualityKpi.systemTesting"), value: 76, barColor: "#f97316" },
   ];
 
-  const qualityInsightsData: QualityInsightItem[] = [
-    { type: "success", text: t("qualityKpi.defectDensityImproved") },
-    { type: "success", text: t("qualityKpi.leakageRateAcceptable") },
-    { type: "warning", text: t("qualityKpi.systemTestingNeedsImprovement") },
-    { type: "info", text: t("qualityKpi.criticalDefectsRequireAttention") },
-  ];
+  const [qualityInsightsText, setQualityInsightsText] = useState("");
 
   const {
     data: defectDensityData,
@@ -87,6 +111,10 @@ export function QualityKPIDashboard() {
     () => getSeverityCountsFromLeakageBugs(issues),
     [issues]
   );
+  const severityDataInternal = useMemo(
+    () => getSeverityCountsFromInternalBugs(issues),
+    [issues]
+  );
 
   const totalActualHours = useMemo(
     () => calculateTotalActualHours(issues ?? []),
@@ -94,7 +122,7 @@ export function QualityKPIDashboard() {
   );
 
   const leakageIssues = useMemo(
-    () => (issues ?? []).filter((b) => getBugTypeFromIssue(b) === "Leakage"),
+    () => (issues ?? []).filter((b) => getBugTypeFromIssue(b) === BugType.Leakage),
     [issues]
   );
   const totalActualHoursLeakage = useMemo(
@@ -136,13 +164,41 @@ export function QualityKPIDashboard() {
     }),
     [defectLeakage, t]
   );
+
+  const removalEfficiency = useMemo(
+    () => calculateRemovalEfficiency(severityDataInternal, severityDataAll),
+    [severityDataInternal, severityDataAll]
+  );
+  const removalEfficiencyCard: QualityMetricCardData = useMemo(
+    () => ({
+      value: `${Math.round(removalEfficiency * 100)}%`,
+      label: t("qualityKpi.removalEfficiency"),
+      subLabel: t("qualityKpi.removalEfficiencySubLabel"),
+      target: t("qualityKpi.removalEfficiencyTarget"),
+      valueColor: removalEfficiency >= 0.8 ? "green" : "blue",
+    }),
+    [removalEfficiency, t]
+  );
+
   const metricCardsData = useMemo(
-    () => [defectDensityCard, defectLeakageCard],
-    [defectDensityCard, defectLeakageCard]
+    () => [defectDensityCard, defectLeakageCard, removalEfficiencyCard],
+    [defectDensityCard, defectLeakageCard, removalEfficiencyCard]
   );
 
   return (
     <div className="space-y-6">
+      {/* Sprint filter: applies to Defect Density, Defect Leakage, Severity Breakdown */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+        <CommonSelect
+          id="quality-kpi-sprint-select"
+          value={sprintSelectValue}
+          onValueChange={handleSprintChange}
+          options={sprintOptions}
+          label={t("progressOverview.filterBySprint")}
+          triggerClassName="w-[180px]"
+        />
+      </div>
+
       {/* Top Row: 2 Charts */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="bg-card border-border border-gray-200">
@@ -177,8 +233,8 @@ export function QualityKPIDashboard() {
         </Card>
       </div>
 
-      {/* Middle Row: 4 Metric Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+      {/* Middle Row: Defect Density, Defect Leakage, Removal Efficiency */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {metricCardsData.map((item) => (
           <QualityMetricCard key={item.label} data={item} />
         ))}
@@ -187,8 +243,11 @@ export function QualityKPIDashboard() {
       {/* Bottom Row: 3 Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <SeverityBreakdownCard data={severityDataAll} />
-        <TestingCoverageCard data={testingCoverageData} />
-        <QualityInsightsCard data={qualityInsightsData} />
+        {/* <TestingCoverageCard data={testingCoverageData} /> */}
+        <QualityInsightsCard
+          value={qualityInsightsText}
+          onValueChange={setQualityInsightsText}
+        />
       </div>
     </div>
   );

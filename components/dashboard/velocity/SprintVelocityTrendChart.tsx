@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ReferenceLine,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 import { useTranslation } from "react-i18next";
 
 import type { VelocityBySprintPoint } from "@/types/interfaces/velocity";
@@ -21,24 +13,12 @@ interface SprintVelocityTrendChartProps {
 export function SprintVelocityTrendChart({ data }: SprintVelocityTrendChartProps) {
   const { t } = useTranslation();
   const chartConfig = {
-    committed: { label: t("velocity.committed"), color: "#3b82f6" },
-    completed: { label: t("velocity.completed"), color: "#14b8a6" },
-    average: { label: `- ${t("common.average")}`, color: "#eab308" },
+    committed: { label: t("velocity.estimate"), color: "#3b82f6" },
   };
-
-  const avg =
-    data.length > 0
-      ? Math.round(
-          data.reduce((s, d) => s + d.completed, 0) / data.length
-        )
-      : 0;
 
   const yMax =
     data.length > 0
-      ? Math.max(
-          ...data.flatMap((d) => [d.committed, d.completed]),
-          avg
-        ) * 1.2
+      ? Math.max(...data.map((d) => d.committed), 0) * 1.2
       : 35;
   const yDomain = [0, Math.max(35, Math.ceil(yMax / 5) * 5)];
 
@@ -68,31 +48,13 @@ export function SprintVelocityTrendChart({ data }: SprintVelocityTrendChartProps
             tick={{ fill: "hsl(var(--muted-foreground))" }}
           />
           <Tooltip content={<ChartTooltipContent />} cursor={false} />
-          <ReferenceLine
-            y={avg}
-            stroke="#eab308"
-            strokeDasharray="4 4"
-            strokeWidth={2}
-          />
           <Bar dataKey="committed" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="completed" fill="#14b8a6" radius={[2, 2, 0, 0]} />
         </BarChart>
       </ChartContainer>
-      <div className="flex justify-center gap-4 pt-2 text-xs text-muted-foreground">
+      <div className="flex justify-center pt-2 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="h-2.5 w-2.5 rounded-[2px] bg-[#3b82f6]" />
-          {t("velocity.committed")}
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-[2px] bg-[#14b8a6]" />
-          {t("velocity.completed")}
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className="h-0 w-4 border-t-2 border-dashed border-[#eab308]"
-            style={{ transform: "translateY(50%)" }}
-          />
-          {t("common.average")}
+          {t("velocity.estimate")}
         </span>
       </div>
     </div>

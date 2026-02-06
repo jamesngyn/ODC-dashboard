@@ -6,6 +6,7 @@ import {
   getBacklogMilestones,
 } from "@/lib/api/backlog";
 import { calculateTotalActualHours } from "@/lib/utils";
+import { BugType, type BugTypeValue } from "@/types/enums/common";
 import type { BacklogIssue } from "@/types/interfaces/common";
 import type {
   DefectDensityPoint,
@@ -17,8 +18,6 @@ type SeverityLevel = SeverityItem["level"];
 
 export const BUG_SEVERITY_FIELD = "Bug Severity";
 export const BUG_TYPE_FIELD = "Bug Type";
-
-export type BugType = "Internal Bug" | "External Bug" | "Leakage";
 
 const SEVERITY_LEVELS: SeverityLevel[] = [
   "Crash/Critical",
@@ -58,13 +57,13 @@ function normalizeToSeverityLevel(raw: string): SeverityLevel {
   return "Normal";
 }
 
-function normalizeToBugType(raw: string): BugType | null {
+function normalizeToBugType(raw: string): BugTypeValue | null {
   if (!raw || typeof raw !== "string") return null;
   const v = raw.trim();
   if (!v) return null;
-  if (/internal\s*bug/i.test(v)) return "Internal Bug";
-  if (/external\s*bug/i.test(v)) return "External Bug";
-  if (/leakage/i.test(v)) return "Leakage";
+  if (/internal\s*bug/i.test(v)) return BugType.InternalBug;
+  if (/external\s*bug/i.test(v)) return BugType.ExternalBug;
+  if (/leakage/i.test(v)) return BugType.Leakage;
   return null;
 }
 
@@ -73,7 +72,7 @@ export function getSeverityFromIssue(issue: BacklogIssue): SeverityLevel {
   return normalizeToSeverityLevel(v);
 }
 
-export function getBugTypeFromIssue(issue: BacklogIssue): BugType | null {
+export function getBugTypeFromIssue(issue: BacklogIssue): BugTypeValue | null {
   const v = getCustomFieldValue(issue, BUG_TYPE_FIELD);
   return normalizeToBugType(v);
 }
@@ -123,7 +122,7 @@ export function getSeverityCountsFromAllBugs(
 
 export function getLeakageCount(bugs: BacklogIssue[] | undefined): number {
   if (!bugs?.length) return 0;
-  return bugs.filter((b) => getBugTypeFromIssue(b) === "Leakage").length;
+  return bugs.filter((b) => getBugTypeFromIssue(b) === BugType.Leakage).length;
 }
 
 export function getSeverityCountsFromLeakageBugs(
@@ -132,7 +131,9 @@ export function getSeverityCountsFromLeakageBugs(
   if (!bugs?.length)
     return SEVERITY_LEVELS.map((level) => ({ level, count: 0 }));
 
-  const leakageBugs = bugs.filter((b) => getBugTypeFromIssue(b) === "Leakage");
+  const leakageBugs = bugs.filter(
+    (b) => getBugTypeFromIssue(b) === BugType.Leakage
+  );
   const counts: Record<SeverityLevel, number> = {
     "Crash/Critical": 0,
     Major: 0,
@@ -140,6 +141,28 @@ export function getSeverityCountsFromLeakageBugs(
     Low: 0,
   };
   for (const b of leakageBugs) {
+    const level = getSeverityFromIssue(b);
+    counts[level] += 1;
+  }
+  return SEVERITY_LEVELS.map((level) => ({ level, count: counts[level] }));
+}
+
+export function getSeverityCountsFromInternalBugs(
+  bugs: BacklogIssue[] | undefined
+): SeverityItem[] {
+  if (!bugs?.length)
+    return SEVERITY_LEVELS.map((level) => ({ level, count: 0 }));
+
+  const internalBugs = bugs.filter(
+    (b) => getBugTypeFromIssue(b) === BugType.InternalBug
+  );
+  const counts: Record<SeverityLevel, number> = {
+    "Crash/Critical": 0,
+    Major: 0,
+    Normal: 0,
+    Low: 0,
+  };
+  for (const b of internalBugs) {
     const level = getSeverityFromIssue(b);
     counts[level] += 1;
   }
@@ -263,6 +286,20 @@ export function calculateDefectLeakage(
   totalActualHours: number
 ): number {
   return calculateWeightedRate("leakage", severityCounts, totalActualHours);
+}
+
+/**
+ * Removal Efficiency = (tổng bug nội bộ × chỉ số severity) / (tổng tất cả bug × chỉ số severity).
+ * Chỉ số severity: Crash/Critical, Major, Normal, Low (SEVERITY_WEIGHTS).
+ */
+export function calculateRemovalEfficiency(
+  severityInternal: SeverityItem[],
+  severityAll: SeverityItem[]
+): number {
+  const weightedInternal = getWeightedSum(severityInternal);
+  const weightedAll = getWeightedSum(severityAll);
+  if (weightedAll <= 0) return 0;
+  return weightedInternal / weightedAll;
 }
 
 const DEFECT_DENSITY_SPRINT_LIMIT = 6;
