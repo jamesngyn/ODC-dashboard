@@ -32,11 +32,11 @@ export const QUERY_KEYS = {
 
 // Tỉ lệ hoàn thành theo giai đoạn (Overall Completion)
 export const PHASE_COMPLETION_RATIO = {
-  REQUIREMENT: 0.2, // Done requirement: 20%
-  DEVELOPMENT: 0.6, // Done code: 60%
-  TESTING: 0.8, // Done Test: 80%
+  REQUIREMENT: 0, // Done requirement: 20%
+  DEVELOPMENT: 0.2, // Done code: 60%
+  TESTING: 0.6, // Done Test: 80%
   UAT: 0.8, // UAT: 80% (tương đương Testing)
-  RELEASE: 1.0, // Release: 100%
+  RELEASE: 0.8, // Release: 80%
 } as const;
 
 // Plan value tạm thời fix cứng (tính bằng giờ)

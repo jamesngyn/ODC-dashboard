@@ -241,8 +241,9 @@ function getPhaseRatioForIssue(issue: BacklogIssue): number {
 
 /**
  * Tính Overall Completion theo công thức:
- * tổng (số giờ estimate của task × tỉ lệ category) / tổng số giờ estimate.
- * Tỉ lệ category lấy từ PHASE_COMPLETION_RATIO (Requirement 20%, Development 60%, Testing 80%, UAT 80%, Release 100%).
+ * tổng (số giờ estimate của task × tỉ lệ) / tổng số giờ estimate.
+ * - Task có status Closed: tỉ lệ 100%, không phụ thuộc category.
+ * - Task khác: tỉ lệ theo category (PHASE_COMPLETION_RATIO).
  * Trả về 0–100 (%).
  */
 export function calculateOverallCompletionByEstimate(
@@ -255,7 +256,11 @@ export function calculateOverallCompletionByEstimate(
 
   for (const issue of issues) {
     const est = issue.estimatedHours ?? 0;
-    sumWeighted += est * getPhaseRatioForIssue(issue);
+    const ratio =
+      issue.status?.name === TaskStatus.Closed
+        ? 1
+        : getPhaseRatioForIssue(issue);
+    sumWeighted += est * ratio;
     sumEstimate += est;
   }
 

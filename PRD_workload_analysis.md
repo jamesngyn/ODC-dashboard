@@ -267,11 +267,11 @@ PLAN_VALUE_HOURS: number // Total planned hours for the project
 TOTAL_USP: number // Total User Story Points
 
 PHASE_COMPLETION_RATIO: {
-  REQUIREMENT: 0.2,  // 20%
-  DEVELOPMENT: 0.6,  // 60%
-  TESTING: 0.8,      // 80%
-  UAT: 0.8,          // 80%
-  RELEASE: 1.0       // 100%
+  REQUIREMENT: 0 
+  DEVELOPMENT: 0.2,  
+  TESTING: 0.6,     
+  UAT: 0.8,        
+  RELEASE: 0.8       
 }
 
 QUERY_KEYS: {
