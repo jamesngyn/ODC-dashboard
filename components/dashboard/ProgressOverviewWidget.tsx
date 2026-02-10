@@ -142,20 +142,31 @@ export const ProgressOverviewWidget = () => {
       );
     }).length;
 
-    // Chỉ đếm task chưa Closed/Resolved (đang làm) vào monitoring; đã Closed/Resolved thì bỏ qua
+    // Task cần monitor: quá start date và due date, chưa closed (Resolved vẫn tính)
+    const now = new Date();
     const monitorCount = issues.filter((issue) => {
-      if (!issue.startDate || !issue.dueDate) {
-        return false;
-      }
+      if (!issue.startDate || !issue.dueDate) return false;
+      if (issue.status.name === TaskStatus.Closed) return false;
+      const start = new Date(issue.startDate);
+      const due = new Date(issue.dueDate);
+      return now > start && now > due;
+    }).length;
+
+    const uatReadyCount =
+      categoryDistribution.find((c) => c.status === TaskType.UAT)?.count ?? 0;
+
+    // Release: chỉ đếm task có category Release và chưa closed
+    const releaseReadyCount = issues.filter((issue) => {
       const isClosedOrResolved =
         issue.status.name === TaskStatus.Closed ||
         issue.status.name === TaskStatus.Resolved;
-      return !isClosedOrResolved;
+      if (isClosedOrResolved) return false;
+      const hasReleaseCategory =
+        issue.category?.some(
+          (c) => c.name?.trim().toLowerCase() === BacklogCategory.Release.toLowerCase()
+        ) ?? false;
+      return hasReleaseCategory;
     }).length;
-    const uatReadyCount =
-      categoryDistribution.find((c) => c.status === TaskType.UAT)?.count ?? 0;
-    const releaseReadyCount =
-      categoryDistribution.find((c) => c.status === TaskType.Release)?.count ?? 0;
 
     return {
       data: {
