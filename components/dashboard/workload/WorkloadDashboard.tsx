@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils";
 import { BacklogParentChild, TaskStatus } from "@/types/enums/common";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
+import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
 import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
 import { CommonSelect } from "@/components/ui/common-select";
 import { useTranslation } from "react-i18next";
@@ -29,6 +30,18 @@ export function WorkloadDashboard() {
     [selectedMilestoneId]
   );
 
+  const { issueTypes } = useBacklogIssueTypes();
+  const taskAndGtaskTypeIds = useMemo<number[]>(() => {
+    const task = issueTypes.find((t) => t.name.toLowerCase().trim() === "task");
+    const gtask = issueTypes.find(
+      (t) => t.name.toLowerCase().trim() === "gtask"
+    );
+    const ids: number[] = [];
+    if (task) ids.push(task.id);
+    if (gtask) ids.push(gtask.id);
+    return ids;
+  }, [issueTypes]);
+
   const { milestones, isLoading: isLoadingMilestones } = useBacklogMilestones();
   const {
     issues,
@@ -36,7 +49,10 @@ export function WorkloadDashboard() {
     isError: isErrorIssues,
   } = useBacklogIssues({
     milestoneIds,
+    issueTypeIds:
+      taskAndGtaskTypeIds.length > 0 ? taskAndGtaskTypeIds : undefined,
     parentChild: BacklogParentChild.All,
+    enabled: taskAndGtaskTypeIds.length > 0,
   });
 
   const isLoading = isLoadingIssues || isLoadingMilestones;
@@ -44,7 +60,7 @@ export function WorkloadDashboard() {
 
   const issuesList = issues ?? [];
 
-  // Tất cả metric đều tính trên toàn bộ issues trong sprint (không lọc Gtask)
+  // Chỉ lấy task độc lập + Gtask (loại trừ Bug), metric tính trên tập đó
   const overallCompletion = useMemo(() => {
     if (issuesList.length === 0) return 0;
     return calculateOverallCompletionByEstimate(issuesList);
