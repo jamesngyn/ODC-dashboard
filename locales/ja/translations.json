@@ -112,6 +112,7 @@
     "targetLessThan": "目標: < {value}",
     "targetLessThan2": "目標: < 2.0",
     "targetLessThan5": "目標: < 5",
+    "targetLine": "目標",
     "unitTesting": "単体テスト",
     "integration": "統合",
     "systemTesting": "システムテスト",

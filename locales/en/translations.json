@@ -112,6 +112,7 @@
     "targetLessThan": "Target: < {{value}}",
     "targetLessThan2": "Target: < 2.0",
     "targetLessThan5": "Target: < 5",
+    "targetLine": "Target",
     "unitTesting": "Unit Testing",
     "integration": "Integration",
     "systemTesting": "System Testing",

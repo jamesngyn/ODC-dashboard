@@ -1,4 +1,4 @@
-import { SEVERITY_WEIGHTS } from "@/constants/common";
+import { HOURS_PER_MAN_MONTH, SEVERITY_WEIGHTS } from "@/constants/common";
 import {
   getActualEndDateFromIssue,
   getBacklogIssueTypeIdByName,
@@ -289,6 +289,32 @@ export function calculateDefectLeakage(
 }
 
 /**
+ * Defect density theo man-month: weightedBugs / (totalActualHoursAll / 160).
+ * Mẫu số = tổng actual hours của tất cả các task có tính bug (kể cả bug closed) / 160.
+ */
+export function calculateDefectDensityPerManMonth(
+  severityCounts: SeverityItem[],
+  totalActualHoursAll: number
+): number {
+  if (totalActualHoursAll <= 0) return 0;
+  const manMonths = totalActualHoursAll / HOURS_PER_MAN_MONTH;
+  return getWeightedSum(severityCounts) / manMonths;
+}
+
+/**
+ * Leakage density theo man-month: weightedLeakage / (totalActualHoursAll / 160).
+ * Mẫu số = tổng actual hours của tất cả các task có tính bug (kể cả bug closed) / 160.
+ */
+export function calculateDefectLeakagePerManMonth(
+  severityCounts: SeverityItem[],
+  totalActualHoursAll: number
+): number {
+  if (totalActualHoursAll <= 0) return 0;
+  const manMonths = totalActualHoursAll / HOURS_PER_MAN_MONTH;
+  return getWeightedSum(severityCounts) / manMonths;
+}
+
+/**
  * Removal Efficiency = (tổng bug nội bộ × chỉ số severity) / (tổng tất cả bug × chỉ số severity).
  * Chỉ số severity: Crash/Critical, Major, Normal, Low (SEVERITY_WEIGHTS).
  */
@@ -324,16 +350,21 @@ export async function fetchDefectDensityBySprint(): Promise<DefectDensityPoint[]
 
   const points: DefectDensityPoint[] = [];
   for (const m of last) {
-    // Lấy Bug issues trực tiếp với filter theo issueTypeIds
-    const bugs = await getBacklogIssuesByMilestone({
+    const allIssues = await getBacklogIssuesByMilestone({
       milestoneIds: [m.id],
-      issueTypeIds: bugTypeId ? [bugTypeId] : undefined,
       count: 100,
     });
+    const bugs =
+      bugTypeId != null
+        ? allIssues.filter((i) => i.issueType?.id === bugTypeId)
+        : [];
 
     const severity = getSeverityCountsFromBugs(bugs);
-    const totalActualHours = calculateTotalActualHours(bugs);
-    const value = calculateDefectDensity(severity, totalActualHours);
+    const totalActualHoursAll = calculateTotalActualHours(allIssues);
+    const value = calculateDefectDensityPerManMonth(
+      severity,
+      totalActualHoursAll
+    );
 
     points.push({ sprint: m.name, value: Number(value.toFixed(2)) });
   }

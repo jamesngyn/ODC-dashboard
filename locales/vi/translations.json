@@ -112,6 +112,7 @@
     "targetLessThan": "Mục tiêu: < {value}",
     "targetLessThan2": "Mục tiêu: < 2.0",
     "targetLessThan5": "Mục tiêu: < 5",
+    "targetLine": "Mục tiêu",
     "unitTesting": "Kiểm thử đơn vị",
     "integration": "Tích hợp",
     "systemTesting": "Kiểm thử hệ thống",

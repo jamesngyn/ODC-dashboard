@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/card";
 
 import {
-  calculateDefectDensity,
-  calculateDefectLeakage,
+  calculateDefectDensityPerManMonth,
+  calculateDefectLeakagePerManMonth,
   calculateRemovalEfficiency,
   computeDefectTrendsByWeek,
   getBugTypeFromIssue,
@@ -69,7 +69,11 @@ export function QualityKPIDashboard() {
     milestoneIds,
     enabled: bugId != null,
   });
-  const isLoading = isLoadingTypes || isLoadingIssues;
+  const { issues: allIssues, isLoading: isLoadingAllIssues } = useBacklogIssues({
+    milestoneIds,
+    enabled: true,
+  });
+  const isLoading = isLoadingTypes || isLoadingIssues || isLoadingAllIssues;
   const isError = isErrorTypes || isErrorIssues;
 
   const sprintSelectValue =
@@ -116,28 +120,28 @@ export function QualityKPIDashboard() {
     [issues]
   );
 
-  const totalActualHours = useMemo(
-    () => calculateTotalActualHours(issues ?? []),
-    [issues]
+  const totalActualHoursAll = useMemo(
+    () => calculateTotalActualHours(allIssues ?? []),
+    [allIssues]
   );
 
   const leakageIssues = useMemo(
     () => (issues ?? []).filter((b) => getBugTypeFromIssue(b) === BugType.Leakage),
     [issues]
   );
-  const totalActualHoursLeakage = useMemo(
-    () => calculateTotalActualHours(leakageIssues),
-    [leakageIssues]
-  );
 
   const defectDensity = useMemo(
-    () => calculateDefectDensity(severityData, totalActualHours),
-    [severityData, totalActualHours]
+    () =>
+      calculateDefectDensityPerManMonth(severityData, totalActualHoursAll),
+    [severityData, totalActualHoursAll]
   );
   const defectLeakage = useMemo(
     () =>
-      calculateDefectLeakage(severityDataLeakage, totalActualHoursLeakage),
-    [severityDataLeakage, totalActualHoursLeakage]
+      calculateDefectLeakagePerManMonth(
+        severityDataLeakage,
+        totalActualHoursAll
+      ),
+    [severityDataLeakage, totalActualHoursAll]
   );
   const defectTrendsData = useMemo(
     () => computeDefectTrendsByWeek(issues),
@@ -156,7 +160,7 @@ export function QualityKPIDashboard() {
   );
   const defectLeakageCard: QualityMetricCardData = useMemo(
     () => ({
-      value: `${defectLeakage}`,
+      value: defectLeakage.toFixed(2),
       label: t("qualityKpi.defectLeakage"),
       subLabel: t("qualityKpi.escapedToProduction"),
       target: t("qualityKpi.targetLessThan5"),
@@ -215,7 +219,7 @@ export function QualityKPIDashboard() {
             ) : (
               <DefectDensityChart
                 data={defectDensityData}
-                targetValue={1.5}
+                targetValue={2}
               />
             )}
           </CardContent>

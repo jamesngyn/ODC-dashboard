@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 import type { DefectDensityPoint } from "@/types/interfaces/quality-kpi";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
@@ -18,21 +19,21 @@ interface DefectDensityChartProps {
   targetValue?: number;
 }
 
-const chartConfig = {
-  value: {
-    label: "Defect Density",
-    color: "#14b8a6",
-  },
-  target: {
-    label: "Targ",
-    color: "#eab308",
-  },
-};
-
 export function DefectDensityChart({
   data,
-  targetValue = 1.5,
+  targetValue = 2,
 }: DefectDensityChartProps) {
+  const { t } = useTranslation();
+  const chartConfig = {
+    value: {
+      label: t("qualityKpi.defectDensity"),
+      color: "#14b8a6",
+    },
+    target: {
+      label: t("qualityKpi.targetLine"),
+      color: "#eab308",
+    },
+  };
   const maxVal =
     data.length > 0
       ? Math.max(...data.map((d) => d.value), targetValue)

@@ -75,6 +75,9 @@ export const SEVERITY_WEIGHTS: Record<
 /** Tổng số man month dùng cho Defect Density. Cập nhật khi có số liệu. */
 export const DEFECT_DENSITY_MAN_MONTHS = 100;
 
+/** Số giờ chuẩn cho 1 man-month (dùng cho defect/leakage density). */
+export const HOURS_PER_MAN_MONTH = 160;
+
 /** Số ngày làm việc chuẩn cho 1 man-month. */
 export const WORKING_DAYS_PER_MAN_MONTH = 20;
 
