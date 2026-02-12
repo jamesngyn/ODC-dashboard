@@ -314,18 +314,21 @@ export function calculateDefectLeakagePerManMonth(
   return getWeightedSum(severityCounts) / manMonths;
 }
 
+function getTotalCount(severityCounts: SeverityItem[]): number {
+  return severityCounts.reduce((sum, item) => sum + item.count, 0);
+}
+
 /**
- * Removal Efficiency = (tổng bug nội bộ × chỉ số severity) / (tổng tất cả bug × chỉ số severity).
- * Chỉ số severity: Crash/Critical, Major, Normal, Low (SEVERITY_WEIGHTS).
+ * Removal Efficiency = (số bug nội bộ / tổng số bug từ API count) * 100.
+ * Chỉ đếm số lượng, không nhân trọng số. totalBugCount lấy từ API count theo issueType (Bug).
  */
 export function calculateRemovalEfficiency(
   severityInternal: SeverityItem[],
-  severityAll: SeverityItem[]
+  totalBugCount: number
 ): number {
-  const weightedInternal = getWeightedSum(severityInternal);
-  const weightedAll = getWeightedSum(severityAll);
-  if (weightedAll <= 0) return 0;
-  return weightedInternal / weightedAll;
+  const countInternal = getTotalCount(severityInternal);
+  if (totalBugCount <= 0) return 0;
+  return (countInternal / totalBugCount) * 100;
 }
 
 const DEFECT_DENSITY_SPRINT_LIMIT = 6;

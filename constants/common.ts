@@ -20,6 +20,7 @@ export const QUERY_KEYS = {
     CATEGORIES: ["backlog", "categories"] as const,
     MILESTONES: ["backlog", "milestones"] as const,
     DEFECT_DENSITY_BY_SPRINT: ["backlog", "defect-density-by-sprint"] as const,
+    ISSUES_COUNT: ["backlog", "issues-count"] as const,
     VELOCITY_BY_SPRINT: ["backlog", "velocity-by-sprint"] as const,
     PROJECT_MEMBERS: (projectId: string | number) =>
       ["backlog", "project-members", projectId] as const,

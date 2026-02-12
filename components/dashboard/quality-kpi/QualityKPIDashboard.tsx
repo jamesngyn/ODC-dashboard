@@ -35,6 +35,7 @@ import { QualityInsightsCard } from "./QualityInsightsCard";
 import { useDefectDensityBySprint } from "@/hooks/useDefectDensityBySprint";
 import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
+import { useBacklogIssuesCount } from "@/hooks/useBacklogIssuesCount";
 import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
 import { CommonSelect } from "@/components/ui/common-select";
 import { Loader2 } from "lucide-react";
@@ -72,6 +73,11 @@ export function QualityKPIDashboard() {
   const { issues: allIssues, isLoading: isLoadingAllIssues } = useBacklogIssues({
     milestoneIds,
     enabled: true,
+  });
+  const { count: totalBugCount } = useBacklogIssuesCount({
+    issueTypeIds: bugId != null ? [bugId] : undefined,
+    milestoneIds,
+    enabled: bugId != null,
   });
   const isLoading = isLoadingTypes || isLoadingIssues || isLoadingAllIssues;
   const isError = isErrorTypes || isErrorIssues;
@@ -170,16 +176,16 @@ export function QualityKPIDashboard() {
   );
 
   const removalEfficiency = useMemo(
-    () => calculateRemovalEfficiency(severityDataInternal, severityDataAll),
-    [severityDataInternal, severityDataAll]
+    () => calculateRemovalEfficiency(severityDataInternal, totalBugCount),
+    [severityDataInternal, totalBugCount]
   );
   const removalEfficiencyCard: QualityMetricCardData = useMemo(
     () => ({
-      value: `${Math.round(removalEfficiency * 100)}%`,
+      value: `${Math.round(removalEfficiency)}%`,
       label: t("qualityKpi.removalEfficiency"),
       subLabel: t("qualityKpi.removalEfficiencySubLabel"),
       target: t("qualityKpi.removalEfficiencyTarget"),
-      valueColor: removalEfficiency >= 0.8 ? "green" : "blue",
+      valueColor: removalEfficiency >= 80 ? "green" : "blue",
     }),
     [removalEfficiency, t]
   );
