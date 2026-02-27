@@ -2,6 +2,7 @@ import { QUERY_KEYS } from "@/constants/common";
 import { useQuery } from "@tanstack/react-query";
 
 import { getBacklogIssuesCount } from "@/lib/api/backlog";
+import { useBacklogProjectId } from "./useBacklogProjectId";
 
 export interface UseBacklogIssuesCountOptions {
   /** Lọc theo issue type IDs (vd: Bug). */
@@ -18,8 +19,11 @@ export const useBacklogIssuesCount = (options?: UseBacklogIssuesCountOptions) =>
     enabled = true,
   } = options ?? {};
 
+  const { backlogProjectId } = useBacklogProjectId();
+
   const queryKey = [
     QUERY_KEYS.BACKLOG.ISSUES_COUNT,
+    backlogProjectId ?? "config",
     issueTypeIds?.length
       ? [...issueTypeIds].sort((a, b) => a - b).join(",")
       : "all",
@@ -32,6 +36,7 @@ export const useBacklogIssuesCount = (options?: UseBacklogIssuesCountOptions) =>
     queryKey,
     queryFn: () =>
       getBacklogIssuesCount({
+        projectId: backlogProjectId,
         issueTypeIds: issueTypeIds?.length ? issueTypeIds : undefined,
         milestoneIds: milestoneIds?.length ? milestoneIds : undefined,
       }),

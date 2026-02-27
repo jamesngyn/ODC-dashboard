@@ -87,6 +87,11 @@ export interface BacklogMilestone {
   displayOrder: number;
 }
 
+export interface BacklogStatus {
+  id: number;
+  name: string;
+}
+
 export interface BacklogUser {
   id: number;
   userId: string; // login ID

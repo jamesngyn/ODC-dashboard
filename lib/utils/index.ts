@@ -131,25 +131,44 @@ export function calculateEstimateCompleted(issues: BacklogIssue[]): {
 }
 
 /**
- * Lấy point từ customFields của issue (field name "point").
- * Dùng cho Gtask velocity và USP.
+ * Lấy giá trị số từ customFields theo tên field (case-insensitive).
  */
-export function getPointFromIssue(issue: BacklogIssue): number {
+function getCustomFieldNumber(
+  issue: BacklogIssue,
+  fieldName: string
+): number {
   if (!issue.customFields || issue.customFields.length === 0) {
     return 0;
   }
 
-  const pointField = issue.customFields.find(
-    (field) => field.name?.toLowerCase() === "point"
+  const field = issue.customFields.find(
+    (f) => f.name?.toLowerCase().trim() === fieldName.toLowerCase().trim()
   );
 
-  if (!pointField || !pointField.value || pointField.value.length === 0) {
+  if (!field?.value || String(field.value).trim().length === 0) {
     return 0;
   }
 
-  const pointValue = pointField.value;
-  const point = parseFloat(pointValue);
-  return isNaN(point) ? 0 : Math.max(0, point);
+  const num = parseFloat(String(field.value).trim());
+  return isNaN(num) ? 0 : Math.max(0, num);
+}
+
+/**
+ * Lấy point từ customFields của issue (field name "point").
+ * Dùng cho Gtask velocity và USP.
+ */
+export function getPointFromIssue(issue: BacklogIssue): number {
+  return getCustomFieldNumber(issue, "point");
+}
+
+/**
+ * Lấy Re-estimate hours từ customFields của issue.
+ * Dùng cho Performance Member (chỉ task đã closed).
+ */
+export function getReEstimateEffortFromIssue(issue: BacklogIssue): number {
+  return (
+    getCustomFieldNumber(issue, "Re-estimate hours") 
+  );
 }
 
 /**
@@ -272,14 +291,22 @@ export function calculateOverallCompletionByEstimate(
  * URL trang tìm kiếm issue của Backlog (giao diện web), có thể filter sẵn theo category.
  * Format: {base}/find/{projectKey}?limit=20&offset=0&projectId={id}&sort=UPDATED[&categoryId[]=...]
  * @param categoryId - Category ID (vd: UAT, Release). Không truyền = mở trang find không filter category.
+ * @param projectId - Backlog project ID (vd. từ ACMS backlog_project_id). Nếu không truyền dùng config.
  */
-export function getBacklogIssueListUrl(categoryId?: number): string {
+export function getBacklogIssueListUrl(
+  categoryId?: number,
+  projectId?: string | null
+): string {
   const base = configs.BACKLOG_BASE_URL.replace(/\/+$/, "");
   const path = `/find/${configs.BACKLOG_PROJECT_ID_OR_KEY}`;
+  const effectiveProjectId =
+    projectId != null && projectId !== ""
+      ? projectId
+      : String(configs.BACKLOG_PROJECT_ID);
   const params = new URLSearchParams({
     limit: "20",
     offset: "0",
-    projectId: String(configs.BACKLOG_PROJECT_ID),
+    projectId: effectiveProjectId,
     sort: "UPDATED",
     simpleSearch: "true",
   });

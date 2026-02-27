@@ -333,10 +333,12 @@ export function calculateRemovalEfficiency(
 
 const DEFECT_DENSITY_SPRINT_LIMIT = 6;
 
-export async function fetchDefectDensityBySprint(): Promise<DefectDensityPoint[]> {
+export async function fetchDefectDensityBySprint(
+  projectId?: string | null
+): Promise<DefectDensityPoint[]> {
   const [milestones, bugTypeId] = await Promise.all([
-    getBacklogMilestones(),
-    getBacklogIssueTypeIdByName("Bug"),
+    getBacklogMilestones(projectId),
+    getBacklogIssueTypeIdByName("Bug", projectId),
   ]);
 
   const sorted = [...milestones]
@@ -354,6 +356,7 @@ export async function fetchDefectDensityBySprint(): Promise<DefectDensityPoint[]
   const points: DefectDensityPoint[] = [];
   for (const m of last) {
     const allIssues = await getBacklogIssuesByMilestone({
+      projectId,
       milestoneIds: [m.id],
       count: 100,
     });

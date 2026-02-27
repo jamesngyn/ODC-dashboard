@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, AlertCircle, Clock, Package, ExternalLink } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, Package, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardStats } from "@/types/dashboard";
@@ -14,9 +14,15 @@ export interface BacklogLinks {
 interface InsightCardsProps {
   insights: DashboardStats["insights"];
   backlogLinks?: BacklogLinks;
+  /** When false, hide "View in Backlog" links (UAT and Release). Default true. */
+  showBacklogLinks?: boolean;
 }
 
-export const InsightCards = ({ insights, backlogLinks }: InsightCardsProps) => {
+export const InsightCards = ({
+  insights,
+  backlogLinks,
+  showBacklogLinks = true,
+}: InsightCardsProps) => {
   const { t } = useTranslation();
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -62,14 +68,14 @@ export const InsightCards = ({ insights, backlogLinks }: InsightCardsProps) => {
           <p className="text-xs text-muted-foreground">
             {t("progressOverview.readyForUatDescription")}
           </p>
-          {backlogLinks?.uat && (
+          {showBacklogLinks && backlogLinks?.uat && (
             <Link
               href={backlogLinks.uat}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-1 text-xs text-purple-600 hover:underline"
             >
-              <ExternalLink className="h-3 w-3" />
+              <ArrowUpRight className="h-3 w-3" />
               {t("progressOverview.viewInBacklog")}
             </Link>
           )}
@@ -87,14 +93,14 @@ export const InsightCards = ({ insights, backlogLinks }: InsightCardsProps) => {
           <p className="text-xs text-muted-foreground">
             {t("progressOverview.readyForReleaseDescription")}
           </p>
-          {backlogLinks?.release && (
+          {showBacklogLinks && backlogLinks?.release && (
             <Link
               href={backlogLinks.release}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
             >
-              <ExternalLink className="h-3 w-3" />
+              <ArrowUpRight className="h-3 w-3" />
               {t("progressOverview.viewInBacklog")}
             </Link>
           )}

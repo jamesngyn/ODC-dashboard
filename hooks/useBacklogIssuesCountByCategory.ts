@@ -4,6 +4,7 @@ import { getBacklogIssuesCountByCategory } from "@/lib/api/backlog";
 import { QUERY_KEYS } from "@/constants/common";
 import { BacklogParentChildType } from "@/types/enums/common";
 import { BacklogCategoryItem } from "@/types/interfaces/common";
+import { useBacklogProjectId } from "./useBacklogProjectId";
 
 export interface UseBacklogIssuesCountByCategoriesOptions {
   categories: BacklogCategoryItem[];
@@ -25,6 +26,7 @@ export const useBacklogIssuesCountByCategories = (
   options: UseBacklogIssuesCountByCategoriesOptions
 ) => {
   const { categories, milestoneIds, parentChild, issueTypeIds, enabled = true } = options;
+  const { backlogProjectId } = useBacklogProjectId();
 
   const queries = useQueries({
     queries: categories.map((category) => ({
@@ -32,6 +34,7 @@ export const useBacklogIssuesCountByCategories = (
         QUERY_KEYS.BACKLOG.ISSUES,
         "count",
         "category",
+        backlogProjectId ?? "config",
         category.id,
         milestoneIds?.length
           ? [...milestoneIds].sort((a, b) => a - b).join(",")
@@ -43,6 +46,7 @@ export const useBacklogIssuesCountByCategories = (
       ] as const,
       queryFn: (): Promise<number> =>
         getBacklogIssuesCountByCategory(category.id, {
+          projectId: backlogProjectId,
           milestoneIds: milestoneIds?.length ? milestoneIds : undefined,
           parentChild,
           issueTypeIds: issueTypeIds?.length ? issueTypeIds : undefined,

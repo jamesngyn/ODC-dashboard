@@ -15,6 +15,8 @@ import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
 import { useBacklogCategories } from "@/hooks/useBacklogCategories";
 import { useBacklogIssuesCountByCategories } from "@/hooks/useBacklogIssuesCountByCategory";
 import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
+import { useBacklogProjectId } from "@/hooks/useBacklogProjectId";
+import { useShowBacklogLinks } from "@/hooks/useShowBacklogLinks";
 import {
   Card,
   CardContent,
@@ -34,6 +36,8 @@ const ALL_SPRINT_VALUE = "all";
 export const ProgressOverviewWidget = () => {
   const { t } = useTranslation();
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<number | null>(null);
+  const { backlogProjectId } = useBacklogProjectId();
+  const { showBacklogLinks } = useShowBacklogLinks();
 
   const { milestones, isLoading: isLoadingMilestones } = useBacklogMilestones();
   const milestoneIds = useMemo<number[] | undefined>(
@@ -218,10 +222,14 @@ export const ProgressOverviewWidget = () => {
         c.name.trim().toLowerCase() === BacklogCategory.Release.toLowerCase()
     );
     return {
-      uat: uatCategory ? getBacklogIssueListUrl(uatCategory.id) : null,
-      release: releaseCategory ? getBacklogIssueListUrl(releaseCategory.id) : null,
+      uat: uatCategory
+        ? getBacklogIssueListUrl(uatCategory.id, backlogProjectId)
+        : null,
+      release: releaseCategory
+        ? getBacklogIssueListUrl(releaseCategory.id, backlogProjectId)
+        : null,
     };
-  }, [categories]);
+  }, [categories, backlogProjectId]);
 
   if (
     isLoadingIssueTypes ||
@@ -284,7 +292,11 @@ export const ProgressOverviewWidget = () => {
           </div>
 
           {/* Key Insights Section */}
-          <InsightCards insights={data.insights} backlogLinks={backlogLinks} />
+          <InsightCards
+            insights={data.insights}
+            backlogLinks={backlogLinks}
+            showBacklogLinks={showBacklogLinks}
+          />
         </CardContent>
       </Card>
     </div>

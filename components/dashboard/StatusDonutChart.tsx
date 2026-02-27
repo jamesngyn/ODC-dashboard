@@ -21,11 +21,11 @@ interface StatusDonutChartProps {
 }
 
 const COLORS: Record<TaskType, string> = {
-  [TaskType.Requirement]: "#4FD2A8", // Teal/Green
+  [TaskType.Requirement]: "#22C55E", // Green
   [TaskType.Development]: "#5C9DFF", // Blue
   [TaskType.Testing]: "#FFC738", // Yellow
   [TaskType.UAT]: "#A687FF", // Purple
-  [TaskType.Release]: "#2BC48A", // Dark Green
+  [TaskType.Release]: "#F97316", // Orange
 };
 
 export const StatusDonutChart = ({ data }: StatusDonutChartProps) => {

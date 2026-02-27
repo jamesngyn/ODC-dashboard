@@ -6,18 +6,24 @@ import type {
   VelocityBySprintPoint,
   VelocityBySprintResult,
 } from "@/types/interfaces/velocity";
+import { useBacklogProjectId } from "./useBacklogProjectId";
 
 const emptyResult: VelocityBySprintResult = { hours: [], usp: [] };
 
 export function useVelocityBySprint() {
+  const { backlogProjectId } = useBacklogProjectId();
+
   const {
     data,
     isLoading,
     isError,
     error,
   } = useQuery<VelocityBySprintResult>({
-    queryKey: QUERY_KEYS.BACKLOG.VELOCITY_BY_SPRINT,
-    queryFn: fetchVelocityBySprint,
+    queryKey: [
+      ...QUERY_KEYS.BACKLOG.VELOCITY_BY_SPRINT,
+      backlogProjectId ?? "config",
+    ],
+    queryFn: () => fetchVelocityBySprint(backlogProjectId),
   });
 
   const result = data ?? emptyResult;

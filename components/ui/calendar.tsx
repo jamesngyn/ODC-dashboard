@@ -19,9 +19,11 @@ function Calendar({
   buttonVariant = "ghost",
   formatters,
   components,
+  fullWidth = false,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+  fullWidth?: boolean
 }) {
   const defaultClassNames = getDefaultClassNames()
 
@@ -32,6 +34,7 @@ function Calendar({
         "bg-white group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent dark:bg-zinc-950",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
+        fullWidth && "w-full",
         className
       )}
       captionLayout={captionLayout}
@@ -41,7 +44,7 @@ function Calendar({
         ...formatters,
       }}
       classNames={{
-        root: cn("w-fit", defaultClassNames.root),
+        root: cn(fullWidth ? "w-full" : "w-fit", defaultClassNames.root),
         months: cn(
           "relative flex flex-col gap-4 md:flex-row",
           defaultClassNames.months

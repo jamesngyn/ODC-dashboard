@@ -1,6 +1,14 @@
+/** Paths of pages that show "Feature not developed" — hidden from sidebar. */
+export const HIDDEN_NAV_PATHS_FEATURE_NOT_DEVELOPED: string[] = [
+  "/dashboard/team-productivity",
+  "/dashboard/resource-utilization",
+  "/dashboard/internal-performance",
+];
+
 /** Path-to-breadcrumb mapping for dashboard routes. */
 export const ROUTE_BREADCRUMBS: Record<string, string> = {
   "/dashboard": "Dashboard",
+  "/dashboard/settings": "Settings",
   "/dashboard/progress-overview": "Progress Overview",
   "/dashboard/workload": "Workload",
   "/dashboard/team-productivity": "Team Productivity",

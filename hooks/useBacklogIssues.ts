@@ -2,10 +2,11 @@ import { QUERY_KEYS } from "@/constants/common";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { getBacklogIssues, getBacklogIssueTypeIdByName } from "@/lib/api/backlog";
+import { getBacklogIssues } from "@/lib/api/backlog";
 import { BacklogIssue } from "@/types/interfaces/common";
 import { BacklogParentChildType } from "@/types/enums/common";
 import { useBacklogIssueTypes } from "./useBacklogIssueTypes";
+import { useBacklogProjectId } from "./useBacklogProjectId";
 
 export interface UseBacklogIssuesOptions {
   /** Lọc theo issue type IDs. Nếu có cả issueTypeName và issueTypeIds, ưu tiên issueTypeIds. */
@@ -30,6 +31,7 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
     enabled = true,
   } = options ?? {};
 
+  const { backlogProjectId } = useBacklogProjectId();
   const { issueTypes, isLoading: isLoadingTypes } = useBacklogIssueTypes();
 
   // Resolve issueTypeName thành issueTypeIds nếu có
@@ -50,6 +52,7 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
 
   const queryKey = [
     QUERY_KEYS.BACKLOG.ISSUES,
+    backlogProjectId ?? "config",
     resolvedIssueTypeIds?.length
       ? [...resolvedIssueTypeIds].sort((a, b) => a - b).join(",")
       : issueTypeName ?? "all",
@@ -68,6 +71,7 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
     queryKey,
     queryFn: () =>
       getBacklogIssues({
+        projectId: backlogProjectId,
         issueTypeIds: resolvedIssueTypeIds,
         milestoneIds: milestoneIds?.length ? milestoneIds : undefined,
         parentChild,

@@ -25,8 +25,18 @@ export const QUERY_KEYS = {
     PROJECT_MEMBERS: (projectId: string | number) =>
       ["backlog", "project-members", projectId] as const,
   },
+  ACMS: {
+    PROJECTS: ["acms", "projects"] as const,
+  },
   CUSTOMER_VALUE: {
     TEAM_PERFORMANCE: ["customer-value", "team-performance"] as const,
+    ACMS_RESOURCES: ["customer-value", "acms-resources"] as const,
+    ACMS_PROJECTS: ["customer-value", "acms-projects"] as const,
+    ACMS_TEAMS: ["customer-value", "acms-teams"] as const,
+    BACKLOG_STATUSES: ["customer-value", "backlog-statuses"] as const,
+    PERFORMANCE_CLOSED_ISSUES: (statusIds: number[]) =>
+      ["customer-value", "performance-closed-issues", statusIds] as const,
+    LEVELS: ["customer-value", "levels"] as const,
   },
   // Thêm các nhóm key khác nếu cần
 } as const;

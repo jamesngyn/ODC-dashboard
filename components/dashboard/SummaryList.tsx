@@ -18,7 +18,7 @@ const COLORS: Record<TaskType, string> = {
   [TaskType.Development]: "bg-[#5C9DFF]",
   [TaskType.Testing]: "bg-[#FFC738]",
   [TaskType.UAT]: "bg-[#A687FF]",
-  [TaskType.Release]: "bg-[#2BC48A]",
+  [TaskType.Release]: "bg-[#F97316]",
 };
 
 export const SummaryList = ({ data }: SummaryListProps) => {

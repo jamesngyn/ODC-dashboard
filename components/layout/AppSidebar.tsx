@@ -8,6 +8,7 @@ import {
   Gem, // Value
   Layers, // Internal
   PieChart,
+  Settings,
   Target, // KPI
   TrendingUp,
   Zap, // Speed
@@ -29,9 +30,12 @@ import {
 import { useTranslation } from "react-i18next";
 import { LocaleToggle } from "@/components/locale-toggle";
 import Link from "next/link";
+import { HIDDEN_NAV_PATHS_FEATURE_NOT_DEVELOPED } from "@/constants/navigation";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation();
+
+  const hiddenPaths = new Set(HIDDEN_NAV_PATHS_FEATURE_NOT_DEVELOPED);
 
   // Menu configuration
   const data = {
@@ -109,7 +113,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupLabel>{t("navigation.overview")}</SidebarGroupLabel>
           <SidebarMenu>
-            {data.overview.map((item) => (
+            {data.overview.filter((item) => !hiddenPaths.has(item.url)).map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title}>
                   <Link href={item.url}>
@@ -126,7 +130,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupLabel>{t("navigation.performance")}</SidebarGroupLabel>
           <SidebarMenu>
-            {data.performance.map((item) => (
+            {data.performance.filter((item) => !hiddenPaths.has(item.url)).map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title}>
                   <Link href={item.url}>
@@ -136,6 +140,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Settings */}
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip={t("navigation.settings")}>
+                <Link href="/dashboard/settings">
+                  <Settings />
+                  <span>{t("navigation.settings")}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

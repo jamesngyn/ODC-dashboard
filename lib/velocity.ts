@@ -17,11 +17,13 @@ import type {
 const VELOCITY_SPRINT_LIMIT = 6;
 
 /** Gtask + Task (parentChild = all). Chỉ tính task có category Release và status Closed. Trả về hours estimate và USP (point) theo sprint. */
-export async function fetchVelocityBySprint(): Promise<VelocityBySprintResult> {
+export async function fetchVelocityBySprint(
+  projectId?: string | null
+): Promise<VelocityBySprintResult> {
   const [milestones, gtaskTypeId, taskTypeId] = await Promise.all([
-    getBacklogMilestones(),
-    getBacklogIssueTypeIdByName("Gtask"),
-    getBacklogIssueTypeIdByName("Task"),
+    getBacklogMilestones(projectId),
+    getBacklogIssueTypeIdByName("Gtask", projectId),
+    getBacklogIssueTypeIdByName("Task", projectId),
   ]);
 
   const issueTypeIds: number[] = [];
@@ -44,6 +46,7 @@ export async function fetchVelocityBySprint(): Promise<VelocityBySprintResult> {
 
   for (const m of last) {
     const issues = await getBacklogIssuesByMilestone({
+      projectId,
       milestoneIds: [m.id],
       issueTypeIds,
       count: 100,
