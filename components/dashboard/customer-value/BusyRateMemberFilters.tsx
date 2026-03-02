@@ -31,6 +31,8 @@ export interface BusyRateMemberFiltersProps {
   projectOptions: CommonSelectOption[];
   teamOptions: CommonSelectOption[];
   periodOptions: CommonSelectOption[];
+  /** Ẩn filter theo project (vd: tab Performance không dùng project filter). */
+  hideProjectFilter?: boolean;
 }
 
 export function BusyRateMemberFilters({
@@ -45,6 +47,7 @@ export function BusyRateMemberFilters({
   projectOptions,
   teamOptions,
   periodOptions,
+  hideProjectFilter = false,
 }: BusyRateMemberFiltersProps) {
   const { t } = useTranslation();
 
@@ -85,14 +88,16 @@ export function BusyRateMemberFilters({
           buttonClassName="w-full justify-start text-left font-normal min-w-[200px]"
         />
       </div>
-      <CommonSelect
-        label={t("customerValue.projectName")}
-        value={selectedProjectId}
-        onValueChange={onProjectChange}
-        options={projectOptions}
-        placeholder={t("customerValue.filterAll")}
-        triggerClassName="w-[220px]"
-      />
+      {!hideProjectFilter && (
+        <CommonSelect
+          label={t("customerValue.projectName")}
+          value={selectedProjectId}
+          onValueChange={onProjectChange}
+          options={projectOptions}
+          placeholder={t("customerValue.filterAll")}
+          triggerClassName="w-[220px]"
+        />
+      )}
       <CommonSelect
         label={t("customerValue.divisionTeam")}
         value={selectedTeamId}

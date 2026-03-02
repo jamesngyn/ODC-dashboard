@@ -53,6 +53,7 @@ export function CustomerValueDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [selectedProjectId, setSelectedProjectId] = useState<string>(ALL_VALUE);
   const [selectedTeamId, setSelectedTeamId] = useState<string>(ALL_VALUE);
+  const [activeTab, setActiveTab] = useState<string>("busy-rate");
 
   const { data: projectsResponse } = useQuery({
     queryKey: QUERY_KEYS.CUSTOMER_VALUE.ACMS_PROJECTS,
@@ -120,7 +121,11 @@ export function CustomerValueDashboard() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="busy-rate" className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
         <TabsList className="mb-4">
           <TabsTrigger value="busy-rate">
             {t("customerValue.busyRateMember")}
@@ -143,6 +148,7 @@ export function CustomerValueDashboard() {
             projectOptions={projectOptions}
             teamOptions={teamOptions}
             periodOptions={periodOptions}
+            hideProjectFilter={activeTab === "performance"}
           />
         </div>
 
@@ -161,7 +167,7 @@ export function CustomerValueDashboard() {
           <PerformanceMemberTab
             periodMode={periodMode}
             selectedDate={selectedDate}
-            selectedProjectId={selectedProjectId}
+            selectedProjectId={ALL_VALUE}
             selectedTeamId={selectedTeamId}
             from={from}
             to={to}
