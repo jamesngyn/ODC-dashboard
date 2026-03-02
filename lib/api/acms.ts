@@ -1,5 +1,6 @@
 import configs from "@/constants/config";
 import { FAKE_ACMS_PROJECTS } from "@/constants/fake-acms-projects";
+
 import type {
   AcmsDivisionDetail,
   AcmsProject,
@@ -7,8 +8,9 @@ import type {
   AcmsResourcesResponse,
   AcmsTeamsResponse,
 } from "@/types/interfaces/acms";
-import { sendGet } from "./axios";
 import { LevelsResponse } from "@/types/interfaces/project-presentation";
+
+import { sendGet } from "./axios";
 
 const acmsBase = configs.ACMS_API_URL;
 const baseUrl = configs.PROJECT_PRESENTATION_API_URL;
@@ -92,12 +94,16 @@ export interface AcmsResourcesParams {
   from: string;
   to: string;
   period?: "day" | "week" | "month";
+  page?: number;
+  limit?: number;
+  project_id?: number | string;
+
+  "team_ids[]"?: number[];
 }
 
 export const getAcmsResources = (
   params?: AcmsResourcesParams
-): Promise<AcmsResourcesResponse> =>
-  sendGet(`${acmsBase}/resources`, params);
+): Promise<AcmsResourcesResponse> => sendGet(`${acmsBase}/resources`, params);
 
 export const getAcmsProjects = (): Promise<AcmsProjectsResponse> =>
   USE_FAKE_ACMS_PROJECTS
@@ -106,8 +112,6 @@ export const getAcmsProjects = (): Promise<AcmsProjectsResponse> =>
 
 export const getAcmsTeams = (): Promise<AcmsTeamsResponse> =>
   sendGet(`${acmsBase}/teams`, { is_active_project: 1 });
-
-
 
 /**
  * Lấy danh sách level và hệ số rank (coefficient) từ Project Presentation API.

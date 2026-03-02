@@ -1,16 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import {
-  format,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
-import { Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,20 +13,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CommonTable } from "@/components/ui/common-table";
-import type { CommonSelectOption } from "@/components/ui/common-select";
 import type { AcmsResource, AcmsProject } from "@/types/interfaces/acms";
 import type { TableColumn } from "@/components/ui/common-table";
 import {
   getAcmsResources,
   getAcmsProjects,
-  getAcmsTeams,
+  type AcmsResourcesParams,
 } from "@/lib/api/acms";
 import { QUERY_KEYS } from "@/constants/common";
+import { ALL_VALUE, type PeriodMode } from "./BusyRateMemberFilters";
 import {
-  BusyRateMemberFilters,
-  ALL_VALUE,
-  type PeriodMode,
-} from "./BusyRateMemberFilters";
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+} from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
+
+export interface BusyRateMemberTabProps {
+  periodMode: PeriodMode;
+  selectedDate: Date;
+  selectedProjectId: string;
+  selectedTeamId: string;
+  from: string;
+  to: string;
+}
 
 function calendarEffortHours(resource: AcmsResource): number {
   if (!resource.day_schedule?.length) return 0;
@@ -42,13 +46,15 @@ function calendarEffortHours(resource: AcmsResource): number {
   );
 }
 
-/** Actual Effort = Log work (total_daily_report) trong khoảng from–to; OT thêm sau khi API có. */
+/** Actual Effort = Log work (total_daily_report) + total_ot trong khoảng from–to. */
 function actualEffortHours(resource: AcmsResource): number {
-  if (!resource.day_schedule?.length) return 0;
-  return resource.day_schedule.reduce(
-    (sum, d) => sum + (d.total_daily_report ?? 0),
-    0
-  );
+  const fromSchedule =
+    resource.day_schedule?.reduce(
+      (sum, d) => sum + (d.total_daily_report ?? 0),
+      0
+    ) ?? 0;
+  const ot = resource.total_ot ?? 0;
+  return fromSchedule + ot;
 }
 
 function effortDeviationPercent(resource: AcmsResource): number | null {
@@ -58,47 +64,49 @@ function effortDeviationPercent(resource: AcmsResource): number | null {
   return Math.round((actual / calendar) * 100);
 }
 
-function getRangeFromPeriod(
-  date: Date,
-  period: PeriodMode
-): { from: string; to: string } {
-  const ymd = (d: Date) => format(d, "yyyy-MM-dd");
-  switch (period) {
-    case "day":
-      return { from: ymd(date), to: ymd(date) };
-    case "week": {
-      const start = startOfWeek(date, { weekStartsOn: 1 });
-      const end = endOfWeek(date, { weekStartsOn: 1 });
-      return { from: ymd(start), to: ymd(end) };
-    }
-    case "month": {
-      const start = startOfMonth(date);
-      const end = endOfMonth(date);
-      return { from: ymd(start), to: ymd(end) };
-    }
-  }
-}
-
-export function BusyRateMemberTab() {
+export function BusyRateMemberTab({
+  periodMode,
+  selectedDate,
+  selectedProjectId,
+  selectedTeamId,
+  from,
+  to,
+}: BusyRateMemberTabProps) {
   const { t } = useTranslation();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(ALL_VALUE);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>(ALL_VALUE);
-  const [periodMode, setPeriodMode] = useState<PeriodMode>("week");
-  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [page, setPage] = useState(1);
 
-  const { from, to } = useMemo(
-    () => getRangeFromPeriod(selectedDate, periodMode),
-    [selectedDate, periodMode]
-  );
+  useEffect(() => {
+    setPage(1);
+  }, [from, to, selectedProjectId, selectedTeamId]);
+
+  const resourceParams = useMemo((): AcmsResourcesParams => {
+    const base: AcmsResourcesParams = {
+      from,
+      to,
+      period: periodMode,
+      page,
+      limit: 20,
+    };
+    if (selectedProjectId !== ALL_VALUE) {
+      base.project_id = selectedProjectId;
+    }
+    if (selectedTeamId !== ALL_VALUE) {
+      base["team_ids[]"] = [Number(selectedTeamId)];
+    }
+    return base;
+  }, [from, to, periodMode, page, selectedProjectId, selectedTeamId]);
 
   const { data: response, isLoading, isError } = useQuery({
-    queryKey: [...QUERY_KEYS.CUSTOMER_VALUE.ACMS_RESOURCES, from, to, periodMode],
-    queryFn: () =>
-      getAcmsResources({
-        from,
-        to,
-        period: periodMode,
-      }),
+    queryKey: [
+      ...QUERY_KEYS.CUSTOMER_VALUE.ACMS_RESOURCES,
+      from,
+      to,
+      periodMode,
+      page,
+      selectedProjectId,
+      selectedTeamId,
+    ],
+    queryFn: () => getAcmsResources(resourceParams),
   });
 
   const { data: projectsResponse } = useQuery({
@@ -106,62 +114,17 @@ export function BusyRateMemberTab() {
     queryFn: getAcmsProjects,
   });
 
-  const { data: teamsResponse } = useQuery({
-    queryKey: QUERY_KEYS.CUSTOMER_VALUE.ACMS_TEAMS,
-    queryFn: getAcmsTeams,
-  });
-
   const projects: AcmsProject[] =
     projectsResponse?.projects?.data ?? [];
-  const teams = teamsResponse?.data ?? [];
 
-  const projectOptions: CommonSelectOption[] = useMemo(
-    () => [
-      { value: ALL_VALUE, label: t("customerValue.filterAll") },
-      ...projects.map((p) => ({ value: String(p.id), label: p.name })),
-    ],
-    [projects, t]
-  );
-
-  const teamOptions: CommonSelectOption[] = useMemo(
-    () => [
-      { value: ALL_VALUE, label: t("customerValue.filterAll") },
-      ...teams.map((tItem) => ({
-        value: String(tItem.id),
-        label:
-          tItem.division_name ?? tItem.division?.name
-            ? `${tItem.division_name ?? tItem.division?.name ?? ""} - ${tItem.name}`
-            : tItem.name,
-      })),
-    ],
-    [teams, t]
-  );
-
-  const periodOptions: CommonSelectOption[] = useMemo(
-    () => [
-      { value: "day", label: t("customerValue.periodDay") },
-      { value: "week", label: t("customerValue.periodWeek") },
-      { value: "month", label: t("customerValue.periodMonth") },
-    ],
-    [t]
-  );
-
-  const rawData = response?.resources?.data ?? [];
-  const data = useMemo(() => {
-    let list = rawData;
-    if (selectedProjectId !== ALL_VALUE) {
-      const project = projects.find((p) => String(p.id) === selectedProjectId);
-      if (project) {
-        list = list.filter((r: AcmsResource) => r.project === project.name);
-      }
-    }
-    if (selectedTeamId !== ALL_VALUE) {
-      list = list.filter(
-        (r: AcmsResource) => String(r.team?.id) === selectedTeamId
-      );
-    }
-    return list;
-  }, [rawData, selectedProjectId, selectedTeamId, projects]);
+  const data = response?.resources?.data ?? [];
+  const currentPage = response?.resources?.current_page ?? 1;
+  const lastPage = response?.resources?.last_page;
+  const hasNextPage =
+    lastPage != null
+      ? currentPage < lastPage
+      : data.length === 20;
+  const hasPrevPage = currentPage > 1;
 
   const columns = useMemo<TableColumn<AcmsResource>[]>(
     () => [
@@ -189,6 +152,16 @@ export function BusyRateMemberTab() {
         key: "jobRank",
         header: t("customerValue.jobRank"),
         accessor: (r: AcmsResource) => r.level?.name ?? "-",
+      },
+      {
+        key: "rankCoefficient",
+        header: t("customerValue.rankCoefficient"),
+        accessor: (r: AcmsResource) => {
+          const coeff = r.level?.coefficient;
+          return coeff != null
+            ? coeff.toFixed(2).replace(".", ",")
+            : "—";
+        },
       },
       {
         key: "projectName",
@@ -275,25 +248,52 @@ export function BusyRateMemberTab() {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
-        <BusyRateMemberFilters
-          periodMode={periodMode}
-          onPeriodModeChange={setPeriodMode}
-          selectedDate={selectedDate}
-          onSelectedDateChange={setSelectedDate}
-          selectedProjectId={selectedProjectId}
-          onProjectChange={setSelectedProjectId}
-          selectedTeamId={selectedTeamId}
-          onTeamChange={setSelectedTeamId}
-          projectOptions={projectOptions}
-          teamOptions={teamOptions}
-          periodOptions={periodOptions}
-        />
         <CommonTable<AcmsResource>
           data={data}
           columns={columns}
           getRowKey={(r) => r._id}
           emptyMessage={t("customerValue.emptyTable")}
         />
+        {data.length > 0 && (
+          <Pagination className="mt-4">
+            <PaginationContent>
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!hasPrevPage}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  aria-label={t("common.previous")}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="sr-only sm:not-sr-only sm:ml-1">
+                    {t("common.previous")}
+                  </span>
+                </Button>
+              </PaginationItem>
+              <PaginationItem>
+                <span className="text-muted-foreground px-2 text-sm">
+                  {t("common.page")} {currentPage}
+                  {lastPage != null && lastPage > 1 ? ` / ${lastPage}` : ""}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!hasNextPage}
+                  onClick={() => setPage((p) => p + 1)}
+                  aria-label={t("common.next")}
+                >
+                  <span className="sr-only sm:not-sr-only sm:mr-1">
+                    {t("common.next")}
+                  </span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </CardContent>
     </Card>
   );

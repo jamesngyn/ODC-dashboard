@@ -261,10 +261,10 @@ export const ProgressOverviewWidget = () => {
         <CardHeader className="px-0 pt-0">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold tracking-tight">
+              <CardTitle className="text-2xl font-bold tracking-tight text-zinc-900">
                 {t("progressOverview.title")}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-zinc-600">
                 {t("progressOverview.description")}
               </CardDescription>
             </div>
@@ -280,18 +280,22 @@ export const ProgressOverviewWidget = () => {
         </CardHeader>
         <CardContent className="px-0">
           <div className="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-10">
-            {/* Chart Section (70% - span 7) */}
-            <div className="bg-card relative rounded-xl border border-zinc-200 p-6 shadow-sm lg:col-span-7">
-              <StatusDonutChart data={data.distribution} />
+            {/* Chart Section (70% - span 7) - clean white card */}
+            <div className="relative rounded-xl border border-zinc-200 bg-white p-6 shadow-sm lg:col-span-7">
+              <StatusDonutChart
+                data={data.distribution}
+                monitorCount={data.insights.monitor.count}
+                monitorThreshold={data.insights.monitor.threshold}
+              />
             </div>
 
-            {/* Summary List Section (30% - span 3) */}
-            <div className="bg-card rounded-xl border border-zinc-200 p-6 shadow-sm lg:col-span-3">
+            {/* Summary List Section (30% - span 3) - Phân tích trạng thái */}
+            <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm lg:col-span-3">
               <SummaryList data={categoryDistribution} />
             </div>
           </div>
 
-          {/* Key Insights Section */}
+          {/* Key Insights Section - four summary cards */}
           <InsightCards
             insights={data.insights}
             backlogLinks={backlogLinks}

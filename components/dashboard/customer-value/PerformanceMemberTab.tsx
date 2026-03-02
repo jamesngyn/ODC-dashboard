@@ -1,10 +1,24 @@
 "use client";
 
 import { useMemo } from "react";
+import { QUERY_KEYS } from "@/constants/common";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { TaskStatus } from "@/types/enums/common";
+import type { AcmsProject, AcmsResource } from "@/types/interfaces/acms";
+import type { BacklogIssue, BacklogUser } from "@/types/interfaces/common";
+import type { PerformanceMember } from "@/types/interfaces/customer-value";
+import { getAcmsResources, type AcmsResourcesParams } from "@/lib/api/acms";
+import {
+  getBacklogIssues,
+  getBacklogProjectMembers,
+  getBacklogStatuses,
+} from "@/lib/api/backlog";
+import { getPointFromIssue, getReEstimateEffortFromIssue } from "@/lib/utils";
+import { useBacklogProjectId } from "@/hooks/useBacklogProjectId";
 import {
   Card,
   CardContent,
@@ -13,21 +27,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CommonTable } from "@/components/ui/common-table";
-import type { PerformanceMember } from "@/types/interfaces/customer-value";
 import type { TableColumn } from "@/components/ui/common-table";
-import type { AcmsResource } from "@/types/interfaces/acms";
-import type { BacklogIssue, BacklogUser } from "@/types/interfaces/common";
-import { getAcmsResources } from "@/lib/api/acms";
-import {
-  getBacklogProjectMembers,
-  getBacklogStatuses,
-  getBacklogIssues,
-} from "@/lib/api/backlog";
-import { getLevels } from "@/lib/api/acms";
-import { getPointFromIssue, getReEstimateEffortFromIssue } from "@/lib/utils";
-import { QUERY_KEYS } from "@/constants/common";
-import { TaskStatus } from "@/types/enums/common";
-import { useBacklogProjectId } from "@/hooks/useBacklogProjectId";
+
+import { ALL_VALUE, type PeriodMode } from "./BusyRateMemberFilters";
 
 interface MemberAggregate {
   estimatedEffortHours: number;
@@ -99,22 +101,33 @@ function buildPerformanceByPoint(
   return point / denom;
 }
 
-export function PerformanceMemberTab() {
+export interface PerformanceMemberTabProps {
+  periodMode: PeriodMode;
+  selectedDate: Date;
+  selectedProjectId: string;
+  selectedTeamId: string;
+  from: string;
+  to: string;
+  projects: AcmsProject[];
+}
+
+export function PerformanceMemberTab({
+  periodMode,
+  selectedDate,
+  selectedProjectId,
+  selectedTeamId,
+  from,
+  to,
+  projects,
+}: PerformanceMemberTabProps) {
   const { t } = useTranslation();
   const { backlogProjectId } = useBacklogProjectId();
   /** Hiển thị project đã chọn (ID hoặc "—" nếu chưa chọn). */
   const projectName = backlogProjectId ?? "—";
 
-  const now = useMemo(() => new Date(), []);
-  const from = format(startOfMonth(now), "yyyy-MM-dd");
-  const to = format(endOfMonth(now), "yyyy-MM-dd");
-
   const { data: members = [], isLoading: isLoadingMembers } = useQuery({
-    queryKey: QUERY_KEYS.BACKLOG.PROJECT_MEMBERS(
-      backlogProjectId ?? "config"
-    ),
-    queryFn: () =>
-      getBacklogProjectMembers(false, backlogProjectId),
+    queryKey: QUERY_KEYS.BACKLOG.PROJECT_MEMBERS(backlogProjectId ?? "config"),
+    queryFn: () => getBacklogProjectMembers(false, backlogProjectId),
   });
 
   const { data: statuses = [], isLoading: isLoadingStatuses } = useQuery({
@@ -147,42 +160,47 @@ export function PerformanceMemberTab() {
     enabled: closedStatusId != null,
   });
 
+  const acmsResourceParams = useMemo((): AcmsResourcesParams => {
+    const base: AcmsResourcesParams = {
+      from,
+      to,
+      period: "month",
+      page: 1,
+      limit: 1000,
+    };
+    if (selectedProjectId !== ALL_VALUE) {
+      base.project_id = selectedProjectId;
+    }
+    if (selectedTeamId !== ALL_VALUE) {
+      base["team_ids[]"] = [Number(selectedTeamId)];
+    }
+    return base;
+  }, [from, to, selectedProjectId, selectedTeamId]);
+
   const { data: acmsResponse, isLoading: isLoadingAcms } = useQuery({
-    queryKey: [...QUERY_KEYS.CUSTOMER_VALUE.ACMS_RESOURCES, from, to],
-    queryFn: () => getAcmsResources({ from, to, period: "month" }),
+    queryKey: [
+      ...QUERY_KEYS.CUSTOMER_VALUE.ACMS_RESOURCES,
+      from,
+      to,
+      "month",
+      1,
+      1000,
+      selectedProjectId,
+      selectedTeamId,
+    ],
+    queryFn: () => getAcmsResources(acmsResourceParams),
   });
-
-  const { data: levelsResponse } = useQuery({
-    queryKey: QUERY_KEYS.CUSTOMER_VALUE.LEVELS,
-    queryFn: getLevels,
-  });
-
-  /** Map level id -> coefficient; fallback map level name -> coefficient (from API levels) */
-  const coefficientByLevelId = useMemo(() => {
-    const map = new Map<number, number>();
-    const list = levelsResponse?.level ?? [];
-    for (const item of list) {
-      map.set(item.id, item.coefficient);
-    }
-    return map;
-  }, [levelsResponse]);
-
-  const coefficientByLevelName = useMemo(() => {
-    const map = new Map<string, number>();
-    const list = levelsResponse?.level ?? [];
-    for (const item of list) {
-      const key = item.name?.trim().toLowerCase() ?? "";
-      if (key) map.set(key, item.coefficient);
-    }
-    return map;
-  }, [levelsResponse]);
 
   const acmsByEmail = useMemo(() => {
     const list = acmsResponse?.resources?.data ?? [];
     const map = new Map<string, AcmsResource>();
     for (const r of list) {
       if (r.email?.trim()) {
-        map.set(r.email.trim().toLowerCase(), r);
+        const normalized = r.email
+          .trim()
+          .toLowerCase()
+          .replace(/\.test(?=@)/, "");
+        map.set(normalized, r);
       }
     }
     return map;
@@ -193,69 +211,78 @@ export function PerformanceMemberTab() {
     [closedIssues]
   );
 
+  /** Hiển thị tất cả user từ Backlog; map roles, jobRank, rankCoefficient từ ACMS theo email; lọc theo project/team nếu chọn. */
   const data = useMemo((): PerformanceMember[] => {
-    return members.map((user: BacklogUser) => {
-      const email = user.mailAddress?.trim() ?? "";
-      const acms = email ? acmsByEmail.get(email.toLowerCase()) : undefined;
+    return members
+      .filter((user: BacklogUser) => {
+        const email = user.mailAddress?.trim() ?? "";
+        const acms = email ? acmsByEmail.get(email.toLowerCase()) : undefined;
+        if (selectedProjectId !== ALL_VALUE) {
+          const project = projects.find(
+            (p) => String(p.id) === selectedProjectId
+          );
+          if (project && (!acms || acms.project !== project.name)) return false;
+        }
+        if (selectedTeamId !== ALL_VALUE) {
+          if (!acms || String(acms.team?.id) !== selectedTeamId) return false;
+        }
+        return true;
+      })
+      .map((user: BacklogUser) => {
+        const email = user.mailAddress?.trim() ?? "";
+        const acms = email ? acmsByEmail.get(email.toLowerCase()) : undefined;
 
-      const role = acms?.position?.name ?? "—";
-      const jobRank = acms?.level?.name ?? "—";
-      const rankCoefficient =
-        (acms?.level?.id != null
-          ? coefficientByLevelId.get(acms.level.id)
-          : undefined) ??
-        (acms?.level?.name != null
-          ? coefficientByLevelName.get(acms.level.name.trim().toLowerCase())
-          : undefined) ??
-        acms?.level?.coefficient ??
-        1;
+        const role = acms?.position?.name ?? "-";
+        const jobRank = acms?.level?.name ?? "-";
+        const rankCoefficient = acms?.level?.coefficient ?? 1;
 
-      const agg = aggregatesByAssigneeId.get(user.id) ?? {
-        estimatedEffortHours: 0,
-        reEstimateEffortHours: 0,
-        actualEffortHours: 0,
-        uspPoint: 0,
-      };
+        const agg = aggregatesByAssigneeId.get(user.id) ?? {
+          estimatedEffortHours: 0,
+          reEstimateEffortHours: 0,
+          actualEffortHours: 0,
+          uspPoint: 0,
+        };
 
-      const perfByEst = buildPerformanceByEstimate(
-        agg.estimatedEffortHours,
-        agg.actualEffortHours,
-        rankCoefficient
-      );
-      const perfByReEst = buildPerformanceByReEstimate(
-        agg.reEstimateEffortHours,
-        agg.actualEffortHours,
-        rankCoefficient
-      );
-      const perfByPoint = buildPerformanceByPoint(
-        agg.uspPoint,
-        agg.actualEffortHours,
-        rankCoefficient
-      );
+        const perfByEst = buildPerformanceByEstimate(
+          agg.estimatedEffortHours,
+          agg.actualEffortHours,
+          rankCoefficient
+        );
+        const perfByReEst = buildPerformanceByReEstimate(
+          agg.reEstimateEffortHours,
+          agg.actualEffortHours,
+          rankCoefficient
+        );
+        const perfByPoint = buildPerformanceByPoint(
+          agg.uspPoint,
+          agg.actualEffortHours,
+          rankCoefficient
+        );
 
-      return {
-        employeeId: acms?.code ?? user.userId ?? "—",
-        fullName: user.name ?? "—",
-        roles: role,
-        jobRank,
-        rankCoefficient,
-        projectName,
-        estimatedEffortHours: agg.estimatedEffortHours,
-        reEstimateEffortHours: agg.reEstimateEffortHours,
-        actualEffortHours: agg.actualEffortHours,
-        uspPoint: agg.uspPoint,
-        performanceByEstimatePercent: perfByEst ?? 0,
-        performanceByReEstimatePercent: perfByReEst ?? 0,
-        performanceByPoint: perfByPoint ?? 0,
-      };
-    });
+        return {
+          employeeId: acms?.code ?? user.userId ?? "-",
+          fullName: user.name ?? "-",
+          roles: role,
+          jobRank,
+          rankCoefficient,
+          projectName,
+          estimatedEffortHours: agg.estimatedEffortHours,
+          reEstimateEffortHours: agg.reEstimateEffortHours,
+          actualEffortHours: agg.actualEffortHours,
+          uspPoint: agg.uspPoint,
+          performanceByEstimatePercent: perfByEst ?? 0,
+          performanceByReEstimatePercent: perfByReEst ?? 0,
+          performanceByPoint: perfByPoint ?? 0,
+        };
+      });
   }, [
     members,
     acmsByEmail,
     aggregatesByAssigneeId,
-    coefficientByLevelId,
-    coefficientByLevelName,
     projectName,
+    selectedProjectId,
+    selectedTeamId,
+    projects,
   ]);
 
   const columns = useMemo<TableColumn<PerformanceMember>[]>(
@@ -273,18 +300,20 @@ export function PerformanceMemberTab() {
       {
         key: "roles",
         header: t("customerValue.roles"),
-        accessor: (r: PerformanceMember) => r.roles,
+        accessor: (r: PerformanceMember) => r.roles || "-",
       },
       {
         key: "jobRank",
         header: t("customerValue.jobRank"),
-        accessor: (r: PerformanceMember) => r.jobRank,
+        accessor: (r: PerformanceMember) => r.jobRank || "-",
       },
       {
         key: "rankCoefficient",
         header: t("customerValue.rankCoefficient"),
         accessor: (r: PerformanceMember) =>
-          r.rankCoefficient.toFixed(2).replace(".", ","),
+          r.rankCoefficient != null
+            ? r.rankCoefficient.toFixed(2).replace(".", ",")
+            : "—",
       },
       {
         key: "projectName",
@@ -324,7 +353,8 @@ export function PerformanceMemberTab() {
         header: t("customerValue.performanceByReEstimate"),
         accessor: (r: PerformanceMember) =>
           r.performanceByReEstimatePercent > 0
-            ? r.performanceByReEstimatePercent.toFixed(2).replace(".", ",") + "%"
+            ? r.performanceByReEstimatePercent.toFixed(2).replace(".", ",") +
+              "%"
             : "—",
       },
       {
@@ -343,7 +373,7 @@ export function PerformanceMemberTab() {
     isLoadingMembers || isLoadingStatuses || isLoadingIssues || isLoadingAcms;
 
   return (
-    <Card className="border-0 bg-zinc-50/50 dark:bg-zinc-900/30 shadow-none">
+    <Card className="border-0 bg-zinc-50/50 shadow-none dark:bg-zinc-900/30">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold">
           {t("customerValue.performanceMemberTitle")}
@@ -355,7 +385,7 @@ export function PerformanceMemberTab() {
       <CardContent className="pt-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
           </div>
         ) : (
           <CommonTable<PerformanceMember>

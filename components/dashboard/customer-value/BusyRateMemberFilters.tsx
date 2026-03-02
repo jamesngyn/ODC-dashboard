@@ -1,7 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { format } from "date-fns";
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
+import { vi } from "date-fns/locale";
 import { CommonSelect } from "@/components/ui/common-select";
 import type { CommonSelectOption } from "@/components/ui/common-select";
 import CommonDatePicker from "@/components/ui/date-picker";
@@ -40,6 +48,23 @@ export function BusyRateMemberFilters({
 }: BusyRateMemberFiltersProps) {
   const { t } = useTranslation();
 
+  const dateRangeDisplay = useMemo(() => {
+    switch (periodMode) {
+      case "day":
+        return format(selectedDate, "dd/MM/yyyy", { locale: vi });
+      case "week": {
+        const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+        const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+        return `${format(start, "dd/MM", { locale: vi })} - ${format(end, "dd/MM/yyyy", { locale: vi })}`;
+      }
+      case "month": {
+        const start = startOfMonth(selectedDate);
+        const end = endOfMonth(selectedDate);
+        return `${format(start, "dd/MM", { locale: vi })} - ${format(end, "dd/MM/yyyy", { locale: vi })}`;
+      }
+    }
+  }, [periodMode, selectedDate]);
+
   return (
     <div className="mb-4 flex flex-wrap items-center gap-4">
       <CommonSelect
@@ -56,7 +81,8 @@ export function BusyRateMemberFilters({
         <CommonDatePicker
           value={format(selectedDate, "yyyy-MM-dd")}
           onChange={(value) => onSelectedDateChange(new Date(value))}
-          buttonClassName="w-full justify-start text-left font-normal"
+          displayValue={dateRangeDisplay}
+          buttonClassName="w-full justify-start text-left font-normal min-w-[200px]"
         />
       </div>
       <CommonSelect

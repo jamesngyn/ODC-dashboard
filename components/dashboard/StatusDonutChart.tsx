@@ -1,14 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { TaskType } from "@/types/enums/common";
 
@@ -18,6 +13,9 @@ interface StatusDonutChartProps {
     count: number;
     percentage: number;
   }[];
+  /** When provided, show floating alert card when count > threshold */
+  monitorCount?: number;
+  monitorThreshold?: number;
 }
 
 const COLORS: Record<TaskType, string> = {
@@ -28,7 +26,12 @@ const COLORS: Record<TaskType, string> = {
   [TaskType.Release]: "#F97316", // Orange
 };
 
-export const StatusDonutChart = ({ data }: StatusDonutChartProps) => {
+export const StatusDonutChart = ({
+  data,
+  monitorCount = 0,
+  monitorThreshold = 0,
+}: StatusDonutChartProps) => {
+  const { t } = useTranslation();
   const chartData = useMemo(() => {
     return data.map((item) => ({
       name: item.status,
@@ -37,8 +40,10 @@ export const StatusDonutChart = ({ data }: StatusDonutChartProps) => {
     }));
   }, [data]);
 
+  const totalTasks = data.reduce((acc, curr) => acc + curr.count, 0);
+
   return (
-    <div className="h-[300px] w-full">
+    <div className="relative h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -57,23 +62,21 @@ export const StatusDonutChart = ({ data }: StatusDonutChartProps) => {
           </Pie>
           <Tooltip
             contentStyle={{
-              backgroundColor: "#1f2937",
-              border: "none",
+              backgroundColor: "#ffffff",
+              border: "1px solid #e4e4e7",
               borderRadius: "8px",
-              color: "#fff",
+              color: "#18181b",
+              boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)",
             }}
-            itemStyle={{ color: "#fff" }}
+            itemStyle={{ color: "#18181b" }}
           />
         </PieChart>
       </ResponsiveContainer>
 
-      {/* Absolute Centered Text */}
+      {/* Absolute Centered Text - "19 TASKS" */}
       <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform text-center">
-        <div className="text-foreground text-3xl font-bold">
-          {data.reduce((acc, curr) => acc + curr.count, 0)}
-        </div>
-        <div className="text-muted-foreground text-xs tracking-widest uppercase">
-          Tasks
+        <div className="text-2xl font-bold text-zinc-900">
+          {totalTasks} TASKS
         </div>
       </div>
     </div>

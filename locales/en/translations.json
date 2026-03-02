@@ -2,6 +2,9 @@
   "common": {
     "featureNotDeveloped": "Feature not developed",
     "error": "Error",
+    "page": "Page",
+    "previous": "Previous",
+    "next": "Next",
     "loading": "Loading...",
     "noData": "No data available",
     "all": "All",
@@ -229,7 +232,13 @@
     "showBacklogLinksDescription": "Show \"View in Backlog\" links on Progress Overview (UAT and Release cards).",
     "backlogProject": "Backlog project",
     "backlogProjectDescription": "Select which project to use for Backlog links. Stored in browser.",
-    "selectProject": "Select a project"
+    "selectProject": "Select a project",
+    "token": "Token",
+    "tokenDescription": "Save access token to cookie for API calls. Token is sent in Authorization header.",
+    "tokenLabel": "Access token",
+    "tokenPlaceholder": "Paste token here...",
+    "setToken": "Save token",
+    "tokenSaved": "Token saved."
   },
   "roles": {
     "admin": "Admin",

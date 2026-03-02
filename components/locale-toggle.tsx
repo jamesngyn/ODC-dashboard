@@ -50,7 +50,7 @@ export function LocaleToggle() {
         <Button
           variant="outline"
           size="icon"
-          className="flex w-full items-center gap-2 border-none"
+          className="flex w-full items-center gap-2 border border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
         >
           <span
             className="text-lg leading-none"

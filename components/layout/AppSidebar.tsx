@@ -3,16 +3,19 @@
 import * as React from "react";
 import {
   Briefcase,
-  Cpu, // Resource
+  Cpu,
   Frame,
-  Gem, // Value
-  Layers, // Internal
+  Gem,
+  Layers,
   PieChart,
   Settings,
-  Target, // KPI
+  Target,
   TrendingUp,
-  Zap, // Speed
+  Zap,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useTranslation } from "react-i18next";
 
 import {
   Sidebar,
@@ -25,16 +28,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { useTranslation } from "react-i18next";
 import { LocaleToggle } from "@/components/locale-toggle";
-import Link from "next/link";
 import { HIDDEN_NAV_PATHS_FEATURE_NOT_DEVELOPED } from "@/constants/navigation";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation();
-
+  const pathname = usePathname();
   const hiddenPaths = new Set(HIDDEN_NAV_PATHS_FEATURE_NOT_DEVELOPED);
 
   // Menu configuration
@@ -115,7 +115,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             {data.overview.filter((item) => !hiddenPaths.has(item.url)).map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.title}
+                  isActive={pathname === item.url}
+                  className={
+                    pathname === item.url
+                      ? "!bg-green-100 !text-green-800 dark:!bg-green-900/30 dark:!text-green-200"
+                      : undefined
+                  }
+                >
                   <Link href={item.url}>
                     <item.icon />
                     <span>{item.title}</span>
@@ -132,7 +141,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             {data.performance.filter((item) => !hiddenPaths.has(item.url)).map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.title}
+                  isActive={pathname === item.url}
+                  className={
+                    pathname === item.url
+                      ? "!bg-green-100 !text-green-800 dark:!bg-green-900/30 dark:!text-green-200"
+                      : undefined
+                  }
+                >
                   <Link href={item.url}>
                     <item.icon />
                     <span>{item.title}</span>
@@ -147,7 +165,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={t("navigation.settings")}>
+              <SidebarMenuButton
+                asChild
+                tooltip={t("navigation.settings")}
+                isActive={pathname === "/dashboard/settings"}
+                className={
+                  pathname === "/dashboard/settings"
+                    ? "!bg-green-100 !text-green-800 dark:!bg-green-900/30 dark:!text-green-200"
+                    : undefined
+                }
+              >
                 <Link href="/dashboard/settings">
                   <Settings />
                   <span>{t("navigation.settings")}</span>

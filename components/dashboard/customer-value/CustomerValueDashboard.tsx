@@ -1,37 +1,172 @@
 "use client";
 
+import { useCallback, useMemo, useState } from "react";
+import { QUERY_KEYS } from "@/constants/common";
+import { useQuery } from "@tanstack/react-query";
+import {
+  endOfMonth,
+  endOfWeek,
+  format,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
 import { useTranslation } from "react-i18next";
+
+import type { AcmsTeamListItem } from "@/types/interfaces/acms";
+import { getAcmsProjects, getAcmsTeams } from "@/lib/api/acms";
+import { buildProjectSelectOptions } from "@/lib/utils/customer-value";
+import type { CommonSelectOption } from "@/components/ui/common-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import {
+  ALL_VALUE,
+  BusyRateMemberFilters,
+  type PeriodMode,
+} from "./BusyRateMemberFilters";
 import { BusyRateMemberTab } from "./BusyRateMemberTab";
 import { PerformanceMemberTab } from "./PerformanceMemberTab";
 
+function getRangeFromPeriod(
+  date: Date,
+  period: PeriodMode
+): { from: string; to: string } {
+  const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+  switch (period) {
+    case "day":
+      return { from: ymd(date), to: ymd(date) };
+    case "week": {
+      const start = startOfWeek(date, { weekStartsOn: 1 });
+      const end = endOfWeek(date, { weekStartsOn: 1 });
+      return { from: ymd(start), to: ymd(end) };
+    }
+    case "month": {
+      const start = startOfMonth(date);
+      const end = endOfMonth(date);
+      return { from: ymd(start), to: ymd(end) };
+    }
+  }
+}
+
 export function CustomerValueDashboard() {
   const { t } = useTranslation();
+  const [periodMode, setPeriodMode] = useState<PeriodMode>("week");
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(ALL_VALUE);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(ALL_VALUE);
+
+  const { data: projectsResponse } = useQuery({
+    queryKey: QUERY_KEYS.CUSTOMER_VALUE.ACMS_PROJECTS,
+    queryFn: getAcmsProjects,
+  });
+
+  const { data: teamsResponse } = useQuery({
+    queryKey: QUERY_KEYS.CUSTOMER_VALUE.ACMS_TEAMS,
+    queryFn: getAcmsTeams,
+  });
+
+  const projects = projectsResponse?.projects?.data ?? [];
+  const teams = teamsResponse?.teams ?? [];
+
+  const projectOptions: CommonSelectOption[] = useMemo(
+    () =>
+      buildProjectSelectOptions(
+        projects,
+        ALL_VALUE,
+        t("customerValue.filterAll")
+      ),
+    [projects, t]
+  );
+
+  const teamOptions: CommonSelectOption[] = useMemo(
+    () => [
+      { value: ALL_VALUE, label: t("customerValue.filterAll") },
+      ...teams.map((tItem: AcmsTeamListItem) => ({
+        value: String(tItem.id),
+        label:
+          (tItem.division_name ?? tItem.division?.name)
+            ? `${tItem.division_name ?? tItem.division?.name ?? ""} - ${tItem.name}`
+            : tItem.name,
+      })),
+    ],
+    [teams, t]
+  );
+
+  const periodOptions: CommonSelectOption[] = useMemo(
+    () => [
+      { value: "day", label: t("customerValue.periodDay") },
+      { value: "week", label: t("customerValue.periodWeek") },
+      { value: "month", label: t("customerValue.periodMonth") },
+    ],
+    [t]
+  );
+
+  const handleProjectChange = useCallback((value: string) => {
+    setSelectedProjectId(value);
+  }, []);
+  const handleTeamChange = useCallback((value: string) => {
+    setSelectedTeamId(value);
+  }, []);
+  const handlePeriodModeChange = useCallback((value: PeriodMode) => {
+    setPeriodMode(value);
+  }, []);
+  const handleSelectedDateChange = useCallback((value: Date) => {
+    setSelectedDate(value);
+  }, []);
+
+  const { from, to } = useMemo(
+    () => getRangeFromPeriod(selectedDate, periodMode),
+    [selectedDate, periodMode]
+  );
 
   return (
     <div className="space-y-6">
       <Tabs defaultValue="busy-rate" className="w-full">
-        <TabsList className="mb-4 w-full justify-start rounded-lg border bg-transparent p-0 h-auto flex-wrap gap-0">
-          <TabsTrigger
-            value="busy-rate"
-            className="rounded-lg border-b-0 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
+        <TabsList className="mb-4">
+          <TabsTrigger value="busy-rate">
             {t("customerValue.busyRateMember")}
           </TabsTrigger>
-          <TabsTrigger
-            value="performance"
-            className="rounded-lg border-b-0 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
+          <TabsTrigger value="performance">
             {t("customerValue.performanceMember")}
           </TabsTrigger>
         </TabsList>
 
+        <div className="mb-4">
+          <BusyRateMemberFilters
+            periodMode={periodMode}
+            onPeriodModeChange={handlePeriodModeChange}
+            selectedDate={selectedDate}
+            onSelectedDateChange={handleSelectedDateChange}
+            selectedProjectId={selectedProjectId}
+            onProjectChange={handleProjectChange}
+            selectedTeamId={selectedTeamId}
+            onTeamChange={handleTeamChange}
+            projectOptions={projectOptions}
+            teamOptions={teamOptions}
+            periodOptions={periodOptions}
+          />
+        </div>
+
         <TabsContent value="busy-rate" className="mt-0">
-          <BusyRateMemberTab />
+          <BusyRateMemberTab
+            periodMode={periodMode}
+            selectedDate={selectedDate}
+            selectedProjectId={selectedProjectId}
+            selectedTeamId={selectedTeamId}
+            from={from}
+            to={to}
+          />
         </TabsContent>
 
         <TabsContent value="performance" className="mt-0">
-          <PerformanceMemberTab />
+          <PerformanceMemberTab
+            periodMode={periodMode}
+            selectedDate={selectedDate}
+            selectedProjectId={selectedProjectId}
+            selectedTeamId={selectedTeamId}
+            from={from}
+            to={to}
+            projects={projects}
+          />
         </TabsContent>
       </Tabs>
     </div>

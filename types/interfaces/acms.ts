@@ -59,12 +59,15 @@ export interface AcmsResource {
   project: string;
   allocates: unknown[];
   unpaid_leave: unknown[];
+  total_ot?: number;
+  total_ot_with_coefficient?: number;
   day_schedule: AcmsDayScheduleItem[];
 }
 
 export interface AcmsResourcesPayload {
   current_page: number;
   data: AcmsResource[];
+  last_page?: number;
 }
 
 export interface AcmsResourcesResponse {
@@ -167,5 +170,5 @@ export interface AcmsProjectsResponse {
 }
 
 export interface AcmsTeamsResponse {
-  data: AcmsTeamListItem[];
+  teams: AcmsTeamListItem[];
 }

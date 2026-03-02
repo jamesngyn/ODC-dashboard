@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function ProgressOverviewPage() {
   return (
-    <div className="flex-1 space-y-4">
+    <div className="flex-1 space-y-4 bg-white min-h-full">
       <ProgressOverviewWidget />
     </div>
   );

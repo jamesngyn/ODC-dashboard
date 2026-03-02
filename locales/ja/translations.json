@@ -2,6 +2,9 @@
   "common": {
     "featureNotDeveloped": "機能が開発されていません",
     "error": "エラー",
+    "page": "ページ",
+    "previous": "前へ",
+    "next": "次へ",
     "loading": "読み込み中...",
     "noData": "データがありません",
     "all": "すべて",
@@ -229,7 +232,13 @@
     "showBacklogLinksDescription": "進捗概要（UAT・Releaseカード）で「Backlogで見る」リンクを表示します。",
     "backlogProject": "Backlogプロジェクト",
     "backlogProjectDescription": "Backlogリンクに使用するプロジェクトを選択。ブラウザに保存されます。",
-    "selectProject": "プロジェクトを選択"
+    "selectProject": "プロジェクトを選択",
+    "token": "トークン",
+    "tokenDescription": "API呼び出し用のアクセストークンをCookieに保存します。Authorizationヘッダーで送信されます。",
+    "tokenLabel": "アクセストークン",
+    "tokenPlaceholder": "トークンをここに貼り付けてください...",
+    "setToken": "トークンを保存",
+    "tokenSaved": "トークンを保存しました。"
   },
   "roles": {
     "admin": "管理者",

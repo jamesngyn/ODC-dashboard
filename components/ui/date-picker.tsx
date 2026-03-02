@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import dayjs from "dayjs";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -12,8 +13,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Icons } from "@/components/icons";
-import { X } from "lucide-react";
 
 interface CommonDatePickerProps {
   value: string;
@@ -24,6 +23,7 @@ interface CommonDatePickerProps {
   buttonClassName?: string;
   placeholder?: string;
   disabledDates?: (date: Date) => boolean;
+  displayValue?: string;
 }
 
 const CommonDatePicker: React.FC<CommonDatePickerProps> = ({
@@ -35,10 +35,17 @@ const CommonDatePicker: React.FC<CommonDatePickerProps> = ({
   buttonClassName,
   placeholder,
   disabledDates,
+  displayValue,
 }) => {
   const { t } = useTranslation();
   const date = value ? dayjs(value).toDate() : undefined;
   const [open, setOpen] = useState(false);
+  const buttonLabel =
+    displayValue !== undefined
+      ? displayValue
+      : date
+        ? format(date, "dd/MM/yyyy", { locale: vi })
+        : placeholder || "mm/dd/yyyy";
 
   return (
     <div className="relative flex w-full items-center">
@@ -53,9 +60,7 @@ const CommonDatePicker: React.FC<CommonDatePickerProps> = ({
             )}
             disabled={disabled}
           >
-            {date
-              ? format(date, "dd/MM/yyyy", { locale: vi })
-              : placeholder || "mm/dd/yyyy"}
+            {buttonLabel}
             <div className="flex items-center gap-1">
               {icon && <span className="ml-2 flex items-center">{icon}</span>}
               {date && !disabled && visibleClearButton && (
@@ -71,7 +76,7 @@ const CommonDatePicker: React.FC<CommonDatePickerProps> = ({
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="min-w-[240px] w-auto p-0" align="start">
+        <PopoverContent className="w-auto min-w-[240px] p-0" align="start">
           <Calendar
             fullWidth
             mode="single"

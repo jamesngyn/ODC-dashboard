@@ -2,6 +2,9 @@
   "common": {
     "featureNotDeveloped": "Tính năng không phát triển",
     "error": "Lỗi",
+    "page": "Trang",
+    "previous": "Trước",
+    "next": "Sau",
     "loading": "Đang tải...",
     "noData": "Không có dữ liệu",
     "all": "Tất cả",
@@ -229,7 +232,13 @@
     "showBacklogLinksDescription": "Hiển thị link \"Xem trong Backlog\" trên Tổng quan tiến độ (thẻ UAT và Release).",
     "backlogProject": "Dự án Backlog",
     "backlogProjectDescription": "Chọn dự án dùng cho link Backlog. Lưu trên trình duyệt.",
-    "selectProject": "Chọn dự án"
+    "selectProject": "Chọn dự án",
+    "token": "Token",
+    "tokenDescription": "Lưu access token vào cookie để gọi API. Token được gửi kèm header Authorization.",
+    "tokenLabel": "Access token",
+    "tokenPlaceholder": "Dán token vào đây...",
+    "setToken": "Lưu token",
+    "tokenSaved": "Đã lưu token."
   },
   "roles": {
     "admin": "Quản trị viên",

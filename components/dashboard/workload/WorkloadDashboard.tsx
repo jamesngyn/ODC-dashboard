@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 
 import {
   calculateOverallCompletionByEstimate,
@@ -142,7 +142,10 @@ export function WorkloadDashboard() {
           title={t("workload.overallCompletion")}
           mainValue={`${completionValue}%`}
           progress={completionValue}
-          accentClassName="border-l-4 border-l-emerald-500"
+          bgClassName="bg-emerald-50 dark:bg-emerald-950/20"
+          progressBarClassName="bg-emerald-500"
+          iconBadge={<CheckCircle2 className="h-4 w-4" aria-hidden />}
+          iconBadgeClassName="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400"
           formulaInput={t("workload.formulaOverallCompletionInput")}
           formulaExpression={t("workload.formulaOverallCompletionExpression")}
           formulaRatio={t("workload.formulaOverallCompletionRatio")}
@@ -152,7 +155,8 @@ export function WorkloadDashboard() {
           mainValue={estimateCompleted.completed.toString()}
           subValue={estimateCompleted.total.toString()}
           subLabel={t("workload.totalHours")}
-          accentClassName="border-l-4 border-l-amber-500"
+          bgClassName="bg-amber-50 dark:bg-amber-950/20"
+          progressBarClassName="bg-amber-500"
           formulaInput={t("workload.formulaEstimateCompletedInput")}
           formulaExpression={t("workload.formulaEstimateCompletedExpression")}
         />
@@ -161,7 +165,8 @@ export function WorkloadDashboard() {
           mainValue={tasksCompleted.completed.toString()}
           subValue={tasksCompleted.total.toString()}
           subLabel={t("workload.totalTasks")}
-          accentClassName="border-l-4 border-l-sky-500"
+          bgClassName="bg-sky-50 dark:bg-sky-950/20"
+          progressBarClassName="bg-sky-500"
           formulaInput={t("workload.formulaTasksCompletedInput")}
           formulaExpression={t("workload.formulaTasksCompletedExpression")}
         />
@@ -170,7 +175,8 @@ export function WorkloadDashboard() {
           mainValue={uspCompleted.completed.toString()}
           subValue={uspCompleted.total.toString()}
           subLabel={t("workload.totalUsp")}
-          accentClassName="border-l-4 border-l-violet-500"
+          bgClassName="bg-violet-50 dark:bg-violet-950/20"
+          progressBarClassName="bg-violet-500"
           formulaInput={t("workload.formulaUspCompletedInput")}
           formulaExpression={t("workload.formulaUspCompletedExpression")}
         />
