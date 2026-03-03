@@ -12,8 +12,7 @@ import { LevelsResponse } from "@/types/interfaces/project-presentation";
 
 import { sendGet } from "./axios";
 
-const acmsBase = configs.ACMS_API_URL;
-const baseUrl = configs.PROJECT_PRESENTATION_API_URL;
+const baseUrl = configs.ACMS_API_URL;
 
 const USE_FAKE_ACMS_PROJECTS =
   process.env.NEXT_PUBLIC_USE_FAKE_ACMS_PROJECTS === "true";
@@ -103,15 +102,15 @@ export interface AcmsResourcesParams {
 
 export const getAcmsResources = (
   params?: AcmsResourcesParams
-): Promise<AcmsResourcesResponse> => sendGet(`${acmsBase}/resources`, params);
+): Promise<AcmsResourcesResponse> => sendGet(`${baseUrl}/resources`, params);
 
 export const getAcmsProjects = (): Promise<AcmsProjectsResponse> =>
   USE_FAKE_ACMS_PROJECTS
     ? Promise.resolve(buildFakeAcmsProjectsResponse())
-    : sendGet(`${acmsBase}/projects`);
+    : sendGet(`${baseUrl}/projects`);
 
 export const getAcmsTeams = (): Promise<AcmsTeamsResponse> =>
-  sendGet(`${acmsBase}/teams`, { is_active_project: 1 });
+  sendGet(`${baseUrl}/teams`, { is_active_project: 1 });
 
 /**
  * Lấy danh sách level và hệ số rank (coefficient) từ Project Presentation API.
