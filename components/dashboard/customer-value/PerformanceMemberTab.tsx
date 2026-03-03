@@ -200,7 +200,10 @@ export function PerformanceMemberTab({
     const map = new Map<string, AcmsResource>();
     for (const r of list) {
       if (r.email?.trim()) {
-        const normalized = r.email.trim().toLowerCase();
+        const normalized = r.email
+          .trim()
+          .toLowerCase()
+          .replace(/\.test(?=@)/, "");
         map.set(normalized, r);
       }
     }

@@ -5,7 +5,10 @@ const configs = {
   BACKLOG_PROJECT_ID: `${process.env.NEXT_PUBLIC_BACKLOG_PROJECT_ID}`,
   API_DOMAIN: `${process.env.NEXT_PUBLIC_API_DOMAIN}`,
   ACMS_API_URL: `${process.env.NEXT_PUBLIC_ACMS_DOMAIN}`,
-  DEFAULT_AUTH_TOKEN: process.env.NEXT_PUBLIC_DEFAULT_AUTH_TOKEN ?? "",
+  PROJECT_PRESENTATION_API_URL: `${
+    process.env.NEXT_PUBLIC_PROJECT_PRESENTATION_API_URL ??
+    "https://project-presentation-api.amela.vn"
+  }`.replace(/\/+$/, ""),
 };
 
 export default configs;

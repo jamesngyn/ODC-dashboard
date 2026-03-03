@@ -7,8 +7,9 @@ import {
 } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { SetDefaultAuthToken } from "@/components/auth/SetDefaultAuthToken";
 import "@/lib/i18n"; // Initialize i18n
+
+
 
 export function Provider({ children, ...props }: ThemeProviderProps) {
   const [queryClient] = React.useState(() => new QueryClient());
@@ -20,7 +21,6 @@ export function Provider({ children, ...props }: ThemeProviderProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SetDefaultAuthToken />
       <NextThemesProvider {...props}>{children}</NextThemesProvider>
       {showDevtools && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
