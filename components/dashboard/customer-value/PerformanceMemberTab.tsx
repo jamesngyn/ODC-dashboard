@@ -151,11 +151,15 @@ export function PerformanceMemberTab({
         closedStatusId != null ? [closedStatusId] : []
       ),
       backlogProjectId ?? "config",
+      from,
+      to,
     ],
     queryFn: () =>
       getBacklogIssues({
         projectId: backlogProjectId,
         statusIds: closedStatusId != null ? [closedStatusId] : undefined,
+        startDateSince: from,
+        startDateUntil: to,
       }),
     enabled: closedStatusId != null,
   });

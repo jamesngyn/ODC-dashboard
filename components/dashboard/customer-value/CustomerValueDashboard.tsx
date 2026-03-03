@@ -18,12 +18,9 @@ import { buildProjectSelectOptions } from "@/lib/utils/customer-value";
 import type { CommonSelectOption } from "@/components/ui/common-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import {
-  ALL_VALUE,
-  BusyRateMemberFilters,
-  type PeriodMode,
-} from "./BusyRateMemberFilters";
+import { ALL_VALUE, BusyRateMemberFilters, type PeriodMode } from "./BusyRateMemberFilters";
 import { BusyRateMemberTab } from "./BusyRateMemberTab";
+import { PerformanceMemberFilters } from "./PerformanceMemberFilters";
 import { PerformanceMemberTab } from "./PerformanceMemberTab";
 
 function getRangeFromPeriod(
@@ -49,11 +46,20 @@ function getRangeFromPeriod(
 
 export function CustomerValueDashboard() {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<string>("busy-rate");
+
+  // BusyRate tab state
   const [periodMode, setPeriodMode] = useState<PeriodMode>("week");
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [selectedProjectId, setSelectedProjectId] = useState<string>(ALL_VALUE);
   const [selectedTeamId, setSelectedTeamId] = useState<string>(ALL_VALUE);
-  const [activeTab, setActiveTab] = useState<string>("busy-rate");
+
+  // Performance tab state (filter theo ngày, tuần, tháng cho API)
+  const [performancePeriodMode, setPerformancePeriodMode] =
+    useState<PeriodMode>("week");
+  const [performanceSelectedDate, setPerformanceSelectedDate] = useState<Date>(
+    () => new Date()
+  );
 
   const { data: projectsResponse } = useQuery({
     queryKey: QUERY_KEYS.CUSTOMER_VALUE.ACMS_PROJECTS,
@@ -113,10 +119,21 @@ export function CustomerValueDashboard() {
   const handleSelectedDateChange = useCallback((value: Date) => {
     setSelectedDate(value);
   }, []);
+  const handlePerformancePeriodModeChange = useCallback((value: PeriodMode) => {
+    setPerformancePeriodMode(value);
+  }, []);
+  const handlePerformanceSelectedDateChange = useCallback((value: Date) => {
+    setPerformanceSelectedDate(value);
+  }, []);
 
   const { from, to } = useMemo(
     () => getRangeFromPeriod(selectedDate, periodMode),
     [selectedDate, periodMode]
+  );
+
+  const { from: performanceFrom, to: performanceTo } = useMemo(
+    () => getRangeFromPeriod(performanceSelectedDate, performancePeriodMode),
+    [performanceSelectedDate, performancePeriodMode]
   );
 
   return (
@@ -135,22 +152,38 @@ export function CustomerValueDashboard() {
           </TabsTrigger>
         </TabsList>
 
-        <div className="mb-4">
-          <BusyRateMemberFilters
-            periodMode={periodMode}
-            onPeriodModeChange={handlePeriodModeChange}
-            selectedDate={selectedDate}
-            onSelectedDateChange={handleSelectedDateChange}
-            selectedProjectId={selectedProjectId}
-            onProjectChange={handleProjectChange}
-            selectedTeamId={selectedTeamId}
-            onTeamChange={handleTeamChange}
-            projectOptions={projectOptions}
-            teamOptions={teamOptions}
-            periodOptions={periodOptions}
-            hideProjectFilter={activeTab === "performance"}
-          />
-        </div>
+        {activeTab === "busy-rate" && (
+          <div className="mb-4">
+            <BusyRateMemberFilters
+              periodMode={periodMode}
+              onPeriodModeChange={handlePeriodModeChange}
+              selectedDate={selectedDate}
+              onSelectedDateChange={handleSelectedDateChange}
+              selectedProjectId={selectedProjectId}
+              onProjectChange={handleProjectChange}
+              selectedTeamId={selectedTeamId}
+              onTeamChange={handleTeamChange}
+              projectOptions={projectOptions}
+              teamOptions={teamOptions}
+              periodOptions={periodOptions}
+            />
+          </div>
+        )}
+
+        {activeTab === "performance" && (
+          <div className="mb-4">
+            <PerformanceMemberFilters
+              periodMode={performancePeriodMode}
+              onPeriodModeChange={handlePerformancePeriodModeChange}
+              selectedDate={performanceSelectedDate}
+              onSelectedDateChange={handlePerformanceSelectedDateChange}
+              selectedTeamId={selectedTeamId}
+              onTeamChange={handleTeamChange}
+              teamOptions={teamOptions}
+              periodOptions={periodOptions}
+            />
+          </div>
+        )}
 
         <TabsContent value="busy-rate" className="mt-0">
           <BusyRateMemberTab
@@ -165,12 +198,12 @@ export function CustomerValueDashboard() {
 
         <TabsContent value="performance" className="mt-0">
           <PerformanceMemberTab
-            periodMode={periodMode}
-            selectedDate={selectedDate}
+            periodMode={performancePeriodMode}
+            selectedDate={performanceSelectedDate}
             selectedProjectId={ALL_VALUE}
             selectedTeamId={selectedTeamId}
-            from={from}
-            to={to}
+            from={performanceFrom}
+            to={performanceTo}
             projects={projects}
           />
         </TabsContent>

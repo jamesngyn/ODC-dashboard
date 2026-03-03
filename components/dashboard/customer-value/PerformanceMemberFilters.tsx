@@ -1,51 +1,43 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import {
-  format,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
   endOfMonth,
+  endOfWeek,
+  format,
+  startOfMonth,
+  startOfWeek,
 } from "date-fns";
 import { vi } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
+
 import { CommonSelect } from "@/components/ui/common-select";
 import type { CommonSelectOption } from "@/components/ui/common-select";
 import CommonDatePicker from "@/components/ui/date-picker";
 
-/** Non-empty value for "All" option (Radix Select disallows value="") */
-export const ALL_VALUE = "__all__";
+import type { PeriodMode } from "./BusyRateMemberFilters";
 
-export type PeriodMode = "day" | "week" | "month";
-
-export interface BusyRateMemberFiltersProps {
+export interface PerformanceMemberFiltersProps {
   periodMode: PeriodMode;
   onPeriodModeChange: (value: PeriodMode) => void;
   selectedDate: Date;
   onSelectedDateChange: (date: Date) => void;
-  selectedProjectId: string;
-  onProjectChange: (value: string) => void;
   selectedTeamId: string;
   onTeamChange: (value: string) => void;
-  projectOptions: CommonSelectOption[];
   teamOptions: CommonSelectOption[];
   periodOptions: CommonSelectOption[];
 }
 
-export function BusyRateMemberFilters({
+export function PerformanceMemberFilters({
   periodMode,
   onPeriodModeChange,
   selectedDate,
   onSelectedDateChange,
-  selectedProjectId,
-  onProjectChange,
   selectedTeamId,
   onTeamChange,
-  projectOptions,
   teamOptions,
   periodOptions,
-}: BusyRateMemberFiltersProps) {
+}: PerformanceMemberFiltersProps) {
   const { t } = useTranslation();
 
   const dateRangeDisplay = useMemo(() => {
@@ -75,7 +67,7 @@ export function BusyRateMemberFilters({
         triggerClassName="w-[140px]"
       />
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium shrink-0">
+        <span className="shrink-0 text-sm font-medium">
           {t("customerValue.dateRange")}
         </span>
         <CommonDatePicker
@@ -85,22 +77,6 @@ export function BusyRateMemberFilters({
           buttonClassName="w-full justify-start text-left font-normal min-w-[200px]"
         />
       </div>
-      <CommonSelect
-        label={t("customerValue.projectName")}
-        value={selectedProjectId}
-        onValueChange={onProjectChange}
-        options={projectOptions}
-        placeholder={t("customerValue.filterAll")}
-        triggerClassName="w-[220px]"
-      />
-      <CommonSelect
-        label={t("customerValue.divisionTeam")}
-        value={selectedTeamId}
-        onValueChange={onTeamChange}
-        options={teamOptions}
-        placeholder={t("customerValue.filterAll")}
-        triggerClassName="w-[220px]"
-      />
     </div>
   );
 }

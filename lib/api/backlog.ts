@@ -184,6 +184,10 @@ export interface GetBacklogIssuesOptions {
    * @see https://developer.nulab.com/docs/backlog/api/2/count-issue/
    */
   parentChild?: BacklogParentChildType;
+  /** Lọc issue có start date từ ngày (yyyy-MM-dd). */
+  startDateSince?: string;
+  /** Lọc issue có start date đến ngày (yyyy-MM-dd). */
+  startDateUntil?: string;
 }
 
 /**
@@ -204,6 +208,8 @@ export const getBacklogIssues = async (
     offset,
     singleBatch = false,
     parentChild,
+    startDateSince,
+    startDateUntil,
   } = options || {};
 
   const effectiveProjectId = getEffectiveProjectId(projectId);
@@ -234,6 +240,12 @@ export const getBacklogIssues = async (
     }
     if (parentChild !== undefined) {
       params.parentChild = parentChild;
+    }
+    if (startDateSince) {
+      params.startDateSince = startDateSince;
+    }
+    if (startDateUntil) {
+      params.startDateUntil = startDateUntil;
     }
     return params;
   };
