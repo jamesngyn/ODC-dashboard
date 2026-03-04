@@ -13,7 +13,11 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type { AcmsTeamListItem } from "@/types/interfaces/acms";
-import { getAcmsProjects, getAcmsTeams } from "@/lib/api/acms";
+import {
+  getAcmsProjects,
+  getAcmsProjectsList,
+  getAcmsTeams,
+} from "@/lib/api/acms";
 import { buildProjectSelectOptions } from "@/lib/utils/customer-value";
 import type { CommonSelectOption } from "@/components/ui/common-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,6 +57,7 @@ export function CustomerValueDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
   const [selectedProjectId, setSelectedProjectId] = useState<string>(ALL_VALUE);
   const [selectedTeamId, setSelectedTeamId] = useState<string>(ALL_VALUE);
+  const [nameFilter, setNameFilter] = useState<string>("");
 
   // Performance tab state (filter theo ngày, tuần, tháng cho API)
   const [performancePeriodMode, setPerformancePeriodMode] =
@@ -66,22 +71,28 @@ export function CustomerValueDashboard() {
     queryFn: getAcmsProjects,
   });
 
+  const { data: filterProjectsResponse } = useQuery({
+    queryKey: QUERY_KEYS.CUSTOMER_VALUE.ACMS_PROJECTS_LIST,
+    queryFn: getAcmsProjectsList,
+  });
+
   const { data: teamsResponse } = useQuery({
     queryKey: QUERY_KEYS.CUSTOMER_VALUE.ACMS_TEAMS,
     queryFn: getAcmsTeams,
   });
 
   const projects = projectsResponse?.projects?.data ?? [];
+  const filterProjects = filterProjectsResponse?.projects?.data ?? [];
   const teams = teamsResponse?.teams ?? [];
 
   const projectOptions: CommonSelectOption[] = useMemo(
     () =>
       buildProjectSelectOptions(
-        projects,
+        filterProjects,
         ALL_VALUE,
         t("customerValue.filterAll")
       ),
-    [projects, t]
+    [filterProjects, t]
   );
 
   const teamOptions: CommonSelectOption[] = useMemo(
@@ -112,6 +123,9 @@ export function CustomerValueDashboard() {
   }, []);
   const handleTeamChange = useCallback((value: string) => {
     setSelectedTeamId(value);
+  }, []);
+  const handleNameFilterChange = useCallback((value: string) => {
+    setNameFilter(value);
   }, []);
   const handlePeriodModeChange = useCallback((value: PeriodMode) => {
     setPeriodMode(value);
@@ -163,6 +177,8 @@ export function CustomerValueDashboard() {
               onProjectChange={handleProjectChange}
               selectedTeamId={selectedTeamId}
               onTeamChange={handleTeamChange}
+              nameFilter={nameFilter}
+              onNameFilterChange={handleNameFilterChange}
               projectOptions={projectOptions}
               teamOptions={teamOptions}
               periodOptions={periodOptions}
@@ -191,6 +207,7 @@ export function CustomerValueDashboard() {
             selectedDate={selectedDate}
             selectedProjectId={selectedProjectId}
             selectedTeamId={selectedTeamId}
+            nameFilter={nameFilter}
             from={from}
             to={to}
           />

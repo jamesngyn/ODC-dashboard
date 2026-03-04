@@ -26,15 +26,23 @@ export function allocateOverlapsPeriod(
 }
 
 /**
- * Calendar effort (giờ): ưu tiên API (calendar_effort), sau đó công thức
- * số ngày làm việc (from–to) × 8h × (allocation/100) với allocation = tổng % từ allocates trùng kỳ.
+ * Calendar effort (giờ): ưu tiên API (calendar_effort) khi không lọc project;
+ * sau đó công thức số ngày làm việc (from–to) × 8h × (allocation/100).
+ * Nếu filterByProjectId được truyền (và khác "all") thì chỉ tính allocation của project đó.
  */
 export function getCalendarEffortHours(
   resource: AcmsResource,
   from: string,
-  to: string
+  to: string,
+  filterByProjectId?: string
 ): number {
+  const filterByProject =
+    filterByProjectId != null &&
+    filterByProjectId !== "" &&
+    filterByProjectId !== "__all__";
+
   if (
+    !filterByProject &&
     resource.calendar_effort != null &&
     Number.isFinite(resource.calendar_effort)
   ) {
@@ -42,11 +50,18 @@ export function getCalendarEffortHours(
   }
   const allocates = resource.allocates;
   if (allocates?.length) {
+    let inPeriod = allocates.filter((a) => allocateOverlapsPeriod(a, from, to));
+    if (filterByProject) {
+      inPeriod = inPeriod.filter(
+        (a) => String(a.project_id) === String(filterByProjectId)
+      );
+    }
     const workingDays = getWorkingDaysInRange(from, to);
-    if (workingDays > 0) {
-      const totalAllocationPct = allocates
-        .filter((a) => allocateOverlapsPeriod(a, from, to))
-        .reduce((sum, a) => sum + (Number(a.allocation) ?? 0), 0);
+    if (workingDays > 0 && inPeriod.length > 0) {
+      const totalAllocationPct = inPeriod.reduce(
+        (sum, a) => sum + (Number(a.allocation) ?? 0),
+        0
+      );
       if (totalAllocationPct > 0) {
         const hours =
           workingDays *
@@ -55,7 +70,9 @@ export function getCalendarEffortHours(
         return Math.round(hours * 10) / 10;
       }
     }
+    if (filterByProject) return 0;
   }
+  if (filterByProject) return 0;
   if (!resource.day_schedule?.length) return 0;
   const fromSchedule = resource.day_schedule.reduce(
     (sum, d) => sum + (d.allocate_effort ?? 0),

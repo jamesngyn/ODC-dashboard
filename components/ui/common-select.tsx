@@ -25,6 +25,8 @@ export interface CommonSelectProps {
   disabled?: boolean;
   triggerClassName?: string;
   labelClassName?: string;
+  /** Layout dọc: label trên, field dưới. */
+  vertical?: boolean;
 }
 
 export const CommonSelect = ({
@@ -37,15 +39,21 @@ export const CommonSelect = ({
   disabled = false,
   triggerClassName,
   labelClassName,
+  vertical = false,
 }: CommonSelectProps) => {
   const selectId = id ?? "common-select";
 
   return (
-    <div className="flex items-center gap-2">
+    <div
+      className={cn(
+        "gap-2",
+        vertical ? "flex flex-col items-stretch" : "flex items-center"
+      )}
+    >
       {label !== undefined && (
         <Label
           htmlFor={selectId}
-          className={cn("text-sm font-medium shrink-0", labelClassName)}
+          className={cn("text-sm font-medium", !vertical && "shrink-0", labelClassName)}
         >
           {label}
         </Label>

@@ -13,6 +13,8 @@ import { vi } from "date-fns/locale";
 import { CommonSelect } from "@/components/ui/common-select";
 import type { CommonSelectOption } from "@/components/ui/common-select";
 import CommonDatePicker from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 /** Non-empty value for "All" option (Radix Select disallows value="") */
 export const ALL_VALUE = "__all__";
@@ -28,6 +30,8 @@ export interface BusyRateMemberFiltersProps {
   onProjectChange: (value: string) => void;
   selectedTeamId: string;
   onTeamChange: (value: string) => void;
+  nameFilter: string;
+  onNameFilterChange: (value: string) => void;
   projectOptions: CommonSelectOption[];
   teamOptions: CommonSelectOption[];
   periodOptions: CommonSelectOption[];
@@ -42,6 +46,8 @@ export function BusyRateMemberFilters({
   onProjectChange,
   selectedTeamId,
   onTeamChange,
+  nameFilter,
+  onNameFilterChange,
   projectOptions,
   teamOptions,
   periodOptions,
@@ -66,18 +72,21 @@ export function BusyRateMemberFilters({
   }, [periodMode, selectedDate]);
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-4">
-      <CommonSelect
-        label={t("customerValue.period")}
-        value={periodMode}
-        onValueChange={(v) => onPeriodModeChange(v as PeriodMode)}
-        options={periodOptions}
-        triggerClassName="w-[140px]"
-      />
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium shrink-0">
+    <div className="mb-4 flex flex-wrap items-end gap-4">
+      <div className="flex flex-col gap-2">
+        <CommonSelect
+          label={t("customerValue.period")}
+          value={periodMode}
+          onValueChange={(v) => onPeriodModeChange(v as PeriodMode)}
+          options={periodOptions}
+          triggerClassName="w-[140px]"
+          vertical
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-sm font-medium">
           {t("customerValue.dateRange")}
-        </span>
+        </Label>
         <CommonDatePicker
           value={format(selectedDate, "yyyy-MM-dd")}
           onChange={(value) => onSelectedDateChange(new Date(value))}
@@ -85,22 +94,40 @@ export function BusyRateMemberFilters({
           buttonClassName="w-full justify-start text-left font-normal min-w-[200px]"
         />
       </div>
-      <CommonSelect
-        label={t("customerValue.projectName")}
-        value={selectedProjectId}
-        onValueChange={onProjectChange}
-        options={projectOptions}
-        placeholder={t("customerValue.filterAll")}
-        triggerClassName="w-[220px]"
-      />
-      <CommonSelect
-        label={t("customerValue.divisionTeam")}
-        value={selectedTeamId}
-        onValueChange={onTeamChange}
-        options={teamOptions}
-        placeholder={t("customerValue.filterAll")}
-        triggerClassName="w-[220px]"
-      />
+      <div className="flex flex-col gap-2">
+        <Label className="text-sm font-medium">
+          {t("customerValue.filterByName")}
+        </Label>
+        <Input
+          type="text"
+          placeholder={t("customerValue.filterByNamePlaceholder")}
+          value={nameFilter}
+          onChange={(e) => onNameFilterChange(e.target.value)}
+          className="h-9 w-[220px]"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <CommonSelect
+          label={t("customerValue.projectName")}
+          value={selectedProjectId}
+          onValueChange={onProjectChange}
+          options={projectOptions}
+          placeholder={t("customerValue.filterAll")}
+          triggerClassName="w-[220px]"
+          vertical
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <CommonSelect
+          label={t("customerValue.divisionTeam")}
+          value={selectedTeamId}
+          onValueChange={onTeamChange}
+          options={teamOptions}
+          placeholder={t("customerValue.filterAll")}
+          triggerClassName="w-[220px]"
+          vertical
+        />
+      </div>
     </div>
   );
 }

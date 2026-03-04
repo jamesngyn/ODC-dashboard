@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
@@ -34,6 +35,7 @@ export interface BusyRateMemberTabProps {
   selectedDate: Date;
   selectedProjectId: string;
   selectedTeamId: string;
+  nameFilter: string;
   from: string;
   to: string;
 }
@@ -52,28 +54,38 @@ function actualEffortHours(resource: AcmsResource): number {
 function effortDeviationPercent(
   resource: AcmsResource,
   from: string,
-  to: string
+  to: string,
+  filterByProjectId?: string
 ): number | null {
-  const calendar = getCalendarEffortHours(resource, from, to);
+  const calendar = getCalendarEffortHours(
+    resource,
+    from,
+    to,
+    filterByProjectId
+  );
   if (calendar <= 0) return null;
   const actual = actualEffortHours(resource);
   return Math.round((actual / calendar) * 100);
 }
+
+const DEBOUNCE_NAME_MS = 1000;
 
 export function BusyRateMemberTab({
   periodMode,
   selectedDate,
   selectedProjectId,
   selectedTeamId,
+  nameFilter,
   from,
   to,
 }: BusyRateMemberTabProps) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
+  const debouncedName = useDebounce(nameFilter.trim(), DEBOUNCE_NAME_MS);
 
   useEffect(() => {
     setPage(1);
-  }, [from, to, selectedProjectId, selectedTeamId]);
+  }, [from, to, selectedProjectId, selectedTeamId, debouncedName]);
 
   const resourceParams = useMemo((): AcmsResourcesParams => {
     const base: AcmsResourcesParams = {
@@ -89,8 +101,11 @@ export function BusyRateMemberTab({
     if (selectedTeamId !== ALL_VALUE) {
       base["team_ids[]"] = [Number(selectedTeamId)];
     }
+    if (debouncedName) {
+      base.name = debouncedName;
+    }
     return base;
-  }, [from, to, periodMode, page, selectedProjectId, selectedTeamId]);
+  }, [from, to, periodMode, page, selectedProjectId, selectedTeamId, debouncedName]);
 
   const { data: response, isLoading, isError } = useQuery({
     queryKey: [
@@ -101,6 +116,7 @@ export function BusyRateMemberTab({
       page,
       selectedProjectId,
       selectedTeamId,
+      debouncedName,
     ],
     queryFn: () => getAcmsResources(resourceParams),
   });
@@ -176,7 +192,7 @@ export function BusyRateMemberTab({
         key: "calendarEffort",
         header: t("customerValue.calendarEffortHours"),
         accessor: (r: AcmsResource) =>
-          getCalendarEffortHours(r, from, to).toFixed(1),
+          getCalendarEffortHours(r, from, to, selectedProjectId).toFixed(1),
       },
       {
         key: "actualEffort",
@@ -187,13 +203,18 @@ export function BusyRateMemberTab({
         key: "effortDeviation",
         header: t("customerValue.effortDeviation"),
         accessor: (r: AcmsResource) => {
-          const pct = effortDeviationPercent(r, from, to);
+          const pct = effortDeviationPercent(
+            r,
+            from,
+            to,
+            selectedProjectId
+          );
           return pct !== null ? `${pct.toFixed(1)}%` : "-";
         },
         className: "font-medium",
       },
     ],
-    [t, projects, from, to]
+    [t, projects, from, to, selectedProjectId]
   );
 
   if (isLoading) {

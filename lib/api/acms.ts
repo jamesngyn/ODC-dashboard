@@ -96,7 +96,8 @@ export interface AcmsResourcesParams {
   page?: number;
   limit?: number;
   project_id?: number | string;
-
+  /** Tìm theo tên (name/code/email). Gửi sau khi debounce. */
+  name?: string;
   "team_ids[]"?: number[];
 }
 
@@ -108,6 +109,9 @@ export const getAcmsProjects = (): Promise<AcmsProjectsResponse> =>
   USE_FAKE_ACMS_PROJECTS
     ? Promise.resolve(buildFakeAcmsProjectsResponse())
     : sendGet(`${baseUrl}/projects`);
+
+export const getAcmsProjectsList = (): Promise<AcmsProjectsResponse> =>
+  sendGet(`${baseUrl}/projects`);
 
 export const getAcmsTeams = (): Promise<AcmsTeamsResponse> =>
   sendGet(`${baseUrl}/teams`, { is_active_project: 1 });

@@ -32,6 +32,7 @@ export const QUERY_KEYS = {
     TEAM_PERFORMANCE: ["customer-value", "team-performance"] as const,
     ACMS_RESOURCES: ["customer-value", "acms-resources"] as const,
     ACMS_PROJECTS: ["customer-value", "acms-projects"] as const,
+    ACMS_PROJECTS_LIST: ["customer-value", "acms-projects-list"] as const,
     ACMS_TEAMS: ["customer-value", "acms-teams"] as const,
     BACKLOG_STATUSES: ["customer-value", "backlog-statuses"] as const,
     PERFORMANCE_CLOSED_ISSUES: (statusIds: number[]) =>

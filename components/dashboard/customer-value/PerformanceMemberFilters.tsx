@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { CommonSelect } from "@/components/ui/common-select";
 import type { CommonSelectOption } from "@/components/ui/common-select";
 import CommonDatePicker from "@/components/ui/date-picker";
+import { Label } from "@/components/ui/label";
 
 import type { PeriodMode } from "./BusyRateMemberFilters";
 
@@ -58,23 +59,37 @@ export function PerformanceMemberFilters({
   }, [periodMode, selectedDate]);
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-4">
-      <CommonSelect
-        label={t("customerValue.period")}
-        value={periodMode}
-        onValueChange={(v) => onPeriodModeChange(v as PeriodMode)}
-        options={periodOptions}
-        triggerClassName="w-[140px]"
-      />
-      <div className="flex items-center gap-2">
-        <span className="shrink-0 text-sm font-medium">
+    <div className="mb-4 flex flex-wrap items-end gap-4">
+      <div className="flex flex-col gap-2">
+        <CommonSelect
+          label={t("customerValue.period")}
+          value={periodMode}
+          onValueChange={(v) => onPeriodModeChange(v as PeriodMode)}
+          options={periodOptions}
+          triggerClassName="w-[140px]"
+          vertical
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-sm font-medium">
           {t("customerValue.dateRange")}
-        </span>
+        </Label>
         <CommonDatePicker
           value={format(selectedDate, "yyyy-MM-dd")}
           onChange={(value) => onSelectedDateChange(new Date(value))}
           displayValue={dateRangeDisplay}
           buttonClassName="w-full justify-start text-left font-normal min-w-[200px]"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <CommonSelect
+          label={t("customerValue.divisionTeam")}
+          value={selectedTeamId}
+          onValueChange={onTeamChange}
+          options={teamOptions}
+          placeholder={t("customerValue.filterAll")}
+          triggerClassName="w-[220px]"
+          vertical
         />
       </div>
     </div>
