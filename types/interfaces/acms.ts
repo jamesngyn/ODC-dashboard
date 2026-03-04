@@ -41,6 +41,27 @@ export interface AcmsDayScheduleItem {
   actual_effort: number;
 }
 
+/** Item trong allocates[] - theo response API resources. */
+export interface AcmsAllocateItem {
+  id: number;
+  stage_id: number;
+  user_id: number;
+  start_date: string;
+  end_date: string;
+  man_day: number;
+  /** Tỉ lệ phân bổ (%): 1 = 1%, 20 = 20%, 100 = 100%. */
+  allocation: number;
+  skill_id: number | null;
+  coefficient: number;
+  role_id: number;
+  deleted_at: string | null;
+  stage_name: string;
+  project: string;
+  project_id: number;
+  /** Effort (giờ hoặc ratio) tùy API. */
+  effort: number;
+}
+
 export interface AcmsResource {
   _id: string;
   user_id: number;
@@ -57,11 +78,13 @@ export interface AcmsResource {
   position: AcmsPosition;
   completed_projects: unknown[];
   project: string;
-  allocates: unknown[];
+  allocates: AcmsAllocateItem[];
   unpaid_leave: unknown[];
   total_ot?: number;
   total_ot_with_coefficient?: number;
   day_schedule: AcmsDayScheduleItem[];
+  /** Giờ calendar effort theo kỳ (day/week/month) nếu API trả về. */
+  calendar_effort?: number;
 }
 
 export interface AcmsResourcesPayload {

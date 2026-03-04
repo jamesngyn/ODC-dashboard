@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { format } from "date-fns";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
   Card,
@@ -21,6 +20,7 @@ import {
   type AcmsResourcesParams,
 } from "@/lib/api/acms";
 import { QUERY_KEYS } from "@/constants/common";
+import { getCalendarEffortHours } from "@/lib/utils/customer-value";
 import { ALL_VALUE, type PeriodMode } from "./BusyRateMemberFilters";
 import {
   Pagination,
@@ -38,14 +38,6 @@ export interface BusyRateMemberTabProps {
   to: string;
 }
 
-function calendarEffortHours(resource: AcmsResource): number {
-  if (!resource.day_schedule?.length) return 0;
-  return resource.day_schedule.reduce(
-    (sum, d) => sum + (d.allocate_effort ?? 0),
-    0
-  );
-}
-
 /** Actual Effort = Log work (total_daily_report) + total_ot trong khoảng from–to. */
 function actualEffortHours(resource: AcmsResource): number {
   const fromSchedule =
@@ -57,8 +49,12 @@ function actualEffortHours(resource: AcmsResource): number {
   return fromSchedule + ot;
 }
 
-function effortDeviationPercent(resource: AcmsResource): number | null {
-  const calendar = calendarEffortHours(resource);
+function effortDeviationPercent(
+  resource: AcmsResource,
+  from: string,
+  to: string
+): number | null {
+  const calendar = getCalendarEffortHours(resource, from, to);
   if (calendar <= 0) return null;
   const actual = actualEffortHours(resource);
   return Math.round((actual / calendar) * 100);
@@ -179,24 +175,25 @@ export function BusyRateMemberTab({
       {
         key: "calendarEffort",
         header: t("customerValue.calendarEffortHours"),
-        accessor: (r: AcmsResource) => calendarEffortHours(r),
+        accessor: (r: AcmsResource) =>
+          getCalendarEffortHours(r, from, to).toFixed(1),
       },
       {
         key: "actualEffort",
         header: t("customerValue.actualEffortHours"),
-        accessor: (r: AcmsResource) => actualEffortHours(r),
+        accessor: (r: AcmsResource) => actualEffortHours(r).toFixed(1),
       },
       {
         key: "effortDeviation",
         header: t("customerValue.effortDeviation"),
         accessor: (r: AcmsResource) => {
-          const pct = effortDeviationPercent(r);
-          return pct !== null ? `${pct}%` : "-";
+          const pct = effortDeviationPercent(r, from, to);
+          return pct !== null ? `${pct.toFixed(1)}%` : "-";
         },
         className: "font-medium",
       },
     ],
-    [t, projects]
+    [t, projects, from, to]
   );
 
   if (isLoading) {
