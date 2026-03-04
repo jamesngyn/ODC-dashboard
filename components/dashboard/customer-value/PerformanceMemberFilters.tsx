@@ -81,17 +81,6 @@ export function PerformanceMemberFilters({
           buttonClassName="w-full justify-start text-left font-normal min-w-[200px]"
         />
       </div>
-      <div className="flex flex-col gap-2">
-        <CommonSelect
-          label={t("customerValue.divisionTeam")}
-          value={selectedTeamId}
-          onValueChange={onTeamChange}
-          options={teamOptions}
-          placeholder={t("customerValue.filterAll")}
-          triggerClassName="w-[220px]"
-          vertical
-        />
-      </div>
     </div>
   );
 }
