@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Cookies from "js-cookie";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,8 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { QUERY_KEYS } from "@/constants/common";
 import { useBacklogProjectId } from "@/hooks/useBacklogProjectId";
 import { useShowBacklogLinks } from "@/hooks/useShowBacklogLinks";
@@ -48,19 +45,6 @@ export default function SettingsPage() {
 
   const handleProjectChange = (value: string) => {
     setBacklogProjectId(value);
-  };
-
-  const [tokenInput, setTokenInput] = useState("");
-  const [tokenSaved, setTokenSaved] = useState(false);
-
-  const handleSetToken = () => {
-    const value = tokenInput.trim();
-    if (value) {
-      Cookies.set("token", value);
-      setTokenSaved(true);
-      setTokenInput("");
-    }
-    setTimeout(() => setTokenSaved(false), 2000);
   };
 
   return (
@@ -129,36 +113,6 @@ export default function SettingsPage() {
                   ))}
                 </SelectContent>
               </Select>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.token")}</CardTitle>
-          <CardDescription>{t("settings.tokenDescription")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="token-input">{t("settings.tokenLabel")}</Label>
-            <Textarea
-              id="token-input"
-              placeholder={t("settings.tokenPlaceholder")}
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              className="min-h-[100px] font-mono text-sm resize-y"
-              rows={4}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={handleSetToken} disabled={!tokenInput.trim()}>
-              {t("settings.setToken")}
-            </Button>
-            {tokenSaved && (
-              <span className="text-sm text-green-600 dark:text-green-400">
-                {t("settings.tokenSaved")}
-              </span>
             )}
           </div>
         </CardContent>
