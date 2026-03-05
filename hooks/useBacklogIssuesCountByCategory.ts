@@ -1,17 +1,18 @@
+import { QUERY_KEYS } from "@/constants/common";
 import { useQueries } from "@tanstack/react-query";
 
-import { getBacklogIssuesCountByCategory } from "@/lib/api/backlog";
-import { QUERY_KEYS } from "@/constants/common";
-import { BacklogParentChildType } from "@/types/enums/common";
+import { BacklogParentChildParam } from "@/types/enums/common";
 import { BacklogCategoryItem } from "@/types/interfaces/common";
+import { getBacklogIssuesCountByCategory } from "@/lib/api/backlog";
+
 import { useBacklogProjectId } from "./useBacklogProjectId";
 
 export interface UseBacklogIssuesCountByCategoriesOptions {
   categories: BacklogCategoryItem[];
   /** Lọc theo milestone (sprint) ID. Không truyền hoặc mảng rỗng = tất cả. */
   milestoneIds?: number[];
-  /** Lọc parent-child (vd: ExcludeChild = chỉ Gtask + task không có con). */
-  parentChild?: BacklogParentChildType;
+  /** Lọc parent-child. Có thể truyền 1 giá trị hoặc mảng. */
+  parentChild?: BacklogParentChildParam;
   /** Lọc theo issue type ID (vd: Task, Gtask). */
   issueTypeIds?: number[];
   enabled?: boolean;
@@ -25,7 +26,13 @@ export interface CategoryCount {
 export const useBacklogIssuesCountByCategories = (
   options: UseBacklogIssuesCountByCategoriesOptions
 ) => {
-  const { categories, milestoneIds, parentChild, issueTypeIds, enabled = true } = options;
+  const {
+    categories,
+    milestoneIds,
+    parentChild,
+    issueTypeIds,
+    enabled = true,
+  } = options;
   const { backlogProjectId } = useBacklogProjectId();
 
   const queries = useQueries({
@@ -39,7 +46,9 @@ export const useBacklogIssuesCountByCategories = (
         milestoneIds?.length
           ? [...milestoneIds].sort((a, b) => a - b).join(",")
           : "all",
-        parentChild ?? "all",
+        Array.isArray(parentChild)
+          ? [...parentChild].sort((a, b) => a - b).join(",")
+          : parentChild ?? "all",
         issueTypeIds?.length
           ? [...issueTypeIds].sort((a, b) => a - b).join(",")
           : "all",
@@ -58,8 +67,13 @@ export const useBacklogIssuesCountByCategories = (
   const isLoading = queries.some((query) => query.isLoading);
   const isError = queries.some((query) => query.isError);
   const errors = queries
-    .map((query, index) => (query.error ? { category: categories[index], error: query.error } : null))
-    .filter((item): item is { category: BacklogCategoryItem; error: Error } => item !== null);
+    .map((query, index) =>
+      query.error ? { category: categories[index], error: query.error } : null
+    )
+    .filter(
+      (item): item is { category: BacklogCategoryItem; error: Error } =>
+        item !== null
+    );
 
   const categoryCounts: CategoryCount[] = queries.map((query, index) => ({
     category: categories[index],

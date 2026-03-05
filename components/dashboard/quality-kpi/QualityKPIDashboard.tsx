@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
+import { BacklogParentChild, BugType } from "@/types/enums/common";
+import type {
+  QualityMetricCardData,
+  TestingCoverageItem,
+} from "@/types/interfaces/quality-kpi";
 import {
   calculateDefectDensityPerManMonth,
   calculateDefectLeakagePerManMonth,
@@ -19,27 +20,21 @@ import {
   getSeverityCountsFromInternalBugs,
   getSeverityCountsFromLeakageBugs,
 } from "@/lib/quality-kpi";
-import { BugType } from "@/types/enums/common";
 import { calculateTotalActualHours } from "@/lib/utils";
-import type {
-  QualityMetricCardData,
-  TestingCoverageItem,
-} from "@/types/interfaces/quality-kpi";
+import { useBacklogIssues } from "@/hooks/useBacklogIssues";
+import { useBacklogIssuesCount } from "@/hooks/useBacklogIssuesCount";
+import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
+import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
+import { useDefectDensityBySprint } from "@/hooks/useDefectDensityBySprint";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CommonSelect } from "@/components/ui/common-select";
 
 import { DefectDensityChart } from "./DefectDensityChart";
 import { DefectTrendsByPhaseChart } from "./DefectTrendsByPhaseChart";
+import { QualityInsightsCard } from "./QualityInsightsCard";
 import { QualityMetricCard } from "./QualityMetricCard";
 import { SeverityBreakdownCard } from "./SeverityBreakdownCard";
 import { TestingCoverageCard } from "./TestingCoverageCard";
-import { QualityInsightsCard } from "./QualityInsightsCard";
-import { useDefectDensityBySprint } from "@/hooks/useDefectDensityBySprint";
-import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
-import { useBacklogIssues } from "@/hooks/useBacklogIssues";
-import { useBacklogIssuesCount } from "@/hooks/useBacklogIssuesCount";
-import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
-import { CommonSelect } from "@/components/ui/common-select";
-import { Loader2 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 const ALL_SPRINT_VALUE = "all";
 
@@ -59,8 +54,9 @@ export function QualityKPIDashboard() {
     isLoading: isLoadingTypes,
     isError: isErrorTypes,
   } = useBacklogIssueTypes();
-  const bugId = issueTypes.find((t) => t.name.toLowerCase().trim() === "bug")
-    ?.id;
+  const bugId = issueTypes.find(
+    (t) => t.name.toLowerCase().trim() === "bug"
+  )?.id;
   const {
     issues,
     isLoading: isLoadingIssues,
@@ -70,10 +66,13 @@ export function QualityKPIDashboard() {
     milestoneIds,
     enabled: bugId != null,
   });
-  const { issues: allIssues, isLoading: isLoadingAllIssues } = useBacklogIssues({
-    milestoneIds,
-    enabled: true,
-  });
+  const { issues: allIssues, isLoading: isLoadingAllIssues } = useBacklogIssues(
+    {
+      milestoneIds,
+      enabled: true,
+      parentChild: BacklogParentChild.ExcludeChild,
+    }
+  );
   const { count: totalBugCount } = useBacklogIssuesCount({
     issueTypeIds: bugId != null ? [bugId] : undefined,
     milestoneIds,
@@ -83,7 +82,9 @@ export function QualityKPIDashboard() {
   const isError = isErrorTypes || isErrorIssues;
 
   const sprintSelectValue =
-    selectedMilestoneId === null ? ALL_SPRINT_VALUE : String(selectedMilestoneId);
+    selectedMilestoneId === null
+      ? ALL_SPRINT_VALUE
+      : String(selectedMilestoneId);
   const handleSprintChange = (value: string) => {
     setSelectedMilestoneId(value === ALL_SPRINT_VALUE ? null : Number(value));
   };
@@ -103,11 +104,8 @@ export function QualityKPIDashboard() {
 
   const [qualityInsightsText, setQualityInsightsText] = useState("");
 
-  const {
-    data: defectDensityData,
-    isLoading: isLoadingDefectDensity,
-  } = useDefectDensityBySprint();
-
+  const { data: defectDensityData, isLoading: isLoadingDefectDensity } =
+    useDefectDensityBySprint();
 
   const severityData = useMemo(
     () => getSeverityCountsFromBugs(issues),
@@ -132,13 +130,13 @@ export function QualityKPIDashboard() {
   );
 
   const leakageIssues = useMemo(
-    () => (issues ?? []).filter((b) => getBugTypeFromIssue(b) === BugType.Leakage),
+    () =>
+      (issues ?? []).filter((b) => getBugTypeFromIssue(b) === BugType.Leakage),
     [issues]
   );
 
   const defectDensity = useMemo(
-    () =>
-      calculateDefectDensityPerManMonth(severityData, totalActualHoursAll),
+    () => calculateDefectDensityPerManMonth(severityData, totalActualHoursAll),
     [severityData, totalActualHoursAll]
   );
   const defectLeakage = useMemo(
@@ -223,10 +221,7 @@ export function QualityKPIDashboard() {
                 <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
               </div>
             ) : (
-              <DefectDensityChart
-                data={defectDensityData}
-                targetValue={2}
-              />
+              <DefectDensityChart data={defectDensityData} targetValue={2} />
             )}
           </CardContent>
         </Card>

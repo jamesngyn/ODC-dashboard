@@ -1,16 +1,21 @@
 import configs from "@/constants/config";
 
-import { BacklogCategory, BacklogParentChildType, TaskType } from "@/types/enums/common";
-
-import { sendGet } from "./axios";
 import {
+  BacklogCategory,
+  BacklogParentChildParam,
+  BacklogParentChildType,
+  TaskType,
+} from "@/types/enums/common";
+import {
+  BacklogCategoryItem,
   BacklogIssue,
   BacklogIssueType,
   BacklogMilestone,
   BacklogStatus,
   BacklogUser,
-  BacklogCategoryItem,
 } from "@/types/interfaces/common";
+
+import { sendGet } from "./axios";
 
 const BACKLOG_API_KEY = configs.BACKLOG_API_KEY;
 const BACKLOG_BASE_URL = configs.BACKLOG_BASE_URL.replace(/\/+$/, "");
@@ -25,10 +30,6 @@ function getEffectiveProjectId(projectId?: string | null): string {
   return id;
 }
 
-
-
-
-
 export const ACTUAL_END_DATE_FIELD_NAME = "Actual End-date";
 
 export function getActualEndDateFromIssue(issue: BacklogIssue): string | null {
@@ -40,8 +41,6 @@ export function getActualEndDateFromIssue(issue: BacklogIssue): string | null {
   const v = String(field.value).trim();
   return v || null;
 }
-
-
 
 /**
  * Map Backlog category sang TaskType
@@ -55,7 +54,6 @@ export function getActualEndDateFromIssue(issue: BacklogIssue): string | null {
 export const mapBacklogCategoryToTaskStatus = (
   categories: BacklogCategoryItem[] | undefined
 ): TaskType => {
- 
   if (!categories || categories.length === 0) {
     return TaskType.Requirement;
   }
@@ -180,10 +178,10 @@ export interface GetBacklogIssuesOptions {
   /** Nếu true, chỉ fetch một batch (dùng count và offset). Mặc định false - fetch toàn bộ. */
   singleBatch?: boolean;
   /**
-   * Lọc theo quan hệ parent-child. 0=All, 1=Exclude Child, 2=Child only, 3=Neither Parent nor Child, 4=Parent only.
+   * Lọc theo quan hệ parent-child. Có thể truyền 1 giá trị hoặc mảng [3, 4]; nếu mảng thì gọi API từng giá trị rồi gộp.
    * @see https://developer.nulab.com/docs/backlog/api/2/count-issue/
    */
-  parentChild?: BacklogParentChildType;
+  parentChild?: BacklogParentChildParam;
   /** Lọc issue có start date từ ngày (yyyy-MM-dd). */
   startDateSince?: string;
   /** Lọc issue có start date đến ngày (yyyy-MM-dd). */
@@ -207,16 +205,35 @@ export const getBacklogIssues = async (
     count,
     offset,
     singleBatch = false,
-    parentChild,
+    parentChild: parentChildParam,
     startDateSince,
     startDateUntil,
   } = options || {};
 
+  if (
+    Array.isArray(parentChildParam) &&
+    parentChildParam.length > 0
+  ) {
+    const results = await Promise.all(
+      parentChildParam.map((pc) =>
+        getBacklogIssues({ ...options, parentChild: pc })
+      )
+    );
+    const byId = new Map<number, BacklogIssue>();
+    results.flat().forEach((i) => byId.set(i.id, i));
+    return Array.from(byId.values());
+  }
+  if (Array.isArray(parentChildParam) && parentChildParam.length === 0) {
+    return [];
+  }
+
+  const parentChild = parentChildParam;
   const effectiveProjectId = getEffectiveProjectId(projectId);
 
-  const buildParams = (
-    opts: { count: number; offset: number }
-  ): Record<string, string | number | number[] | string[] | undefined> => {
+  const buildParams = (opts: {
+    count: number;
+    offset: number;
+  }): Record<string, string | number | number[] | string[] | undefined> => {
     const params: Record<
       string,
       string | number | number[] | string[] | undefined
@@ -380,7 +397,10 @@ export const getBacklogIssuesByMilestone = (
     count = 100,
     parentChild,
   } = options;
-  const params: Record<string, string | number | number[] | string[] | undefined> = {
+  const params: Record<
+    string,
+    string | number | number[] | string[] | undefined
+  > = {
     apiKey: BACKLOG_API_KEY,
     "projectId[]": [getEffectiveProjectId(projectId)],
     "milestoneId[]": milestoneIds,
@@ -413,10 +433,10 @@ export interface GetBacklogIssuesCountOptions {
   /** Keyword search. */
   keyword?: string;
   /**
-   * Lọc theo quan hệ parent-child. 0=All, 1=Exclude Child, 2=Child only, 3=Neither Parent nor Child, 4=Parent only.
+   * Lọc theo quan hệ parent-child. Có thể truyền 1 giá trị hoặc mảng; nếu mảng thì đếm từng rồi cộng tổng.
    * @see https://developer.nulab.com/docs/backlog/api/2/count-issue/
    */
-  parentChild?: BacklogParentChildType;
+  parentChild?: BacklogParentChildParam;
 }
 
 interface BacklogIssuesCountResponse {
@@ -432,8 +452,27 @@ interface BacklogIssuesCountResponse {
 export const getBacklogIssuesCount = async (
   options?: GetBacklogIssuesCountOptions
 ): Promise<number> => {
+  const parentChildParam = options?.parentChild;
+  if (
+    Array.isArray(parentChildParam) &&
+    parentChildParam.length > 0
+  ) {
+    const counts = await Promise.all(
+      parentChildParam.map((pc) =>
+        getBacklogIssuesCount({ ...options, parentChild: pc })
+      )
+    );
+    return counts.reduce((a, b) => a + b, 0);
+  }
+  if (Array.isArray(parentChildParam) && parentChildParam.length === 0) {
+    return 0;
+  }
+
   const projectId = getEffectiveProjectId(options?.projectId);
-  const params: Record<string, string | number | number[] | string[] | undefined> = {
+  const params: Record<
+    string,
+    string | number | number[] | string[] | undefined
+  > = {
     apiKey: BACKLOG_API_KEY,
     "projectId[]": [projectId],
   };
@@ -459,8 +498,8 @@ export const getBacklogIssuesCount = async (
   if (options?.keyword) {
     params.keyword = options.keyword;
   }
-  if (options?.parentChild !== undefined) {
-    params.parentChild = options.parentChild;
+  if (parentChildParam !== undefined) {
+    params.parentChild = parentChildParam;
   }
 
   const response = (await sendGet(
@@ -476,8 +515,8 @@ export interface GetBacklogIssuesCountByCategoryOptions {
   projectId?: string | null;
   /** Lọc theo milestone (sprint) ID. Nếu không truyền hoặc mảng rỗng = tất cả. */
   milestoneIds?: number[];
-  /** Lọc parent-child (vd: ExcludeChild để chỉ đếm Gtask + task không có con). */
-  parentChild?: BacklogParentChildType;
+  /** Lọc parent-child. Có thể truyền 1 giá trị hoặc mảng. */
+  parentChild?: BacklogParentChildParam;
   /** Lọc theo issue type ID (vd: Task, Gtask). */
   issueTypeIds?: number[];
 }

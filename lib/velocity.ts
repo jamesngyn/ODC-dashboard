@@ -4,7 +4,11 @@ import {
   getBacklogIssueTypeIdByName,
 } from "@/lib/api/backlog";
 import { getPointFromIssue } from "@/lib/utils";
-import { BacklogParentChild, TaskStatus } from "@/types/enums/common";
+import {
+  BacklogParentChild,
+  BacklogParentChildType,
+  TaskStatus,
+} from "@/types/enums/common";
 import type {
   BurndownDayPoint,
   ForecastData,
@@ -16,10 +20,17 @@ import type {
 
 const VELOCITY_SPRINT_LIMIT = 6;
 
-/** Gtask + Task (parentChild = all). Chỉ tính task có category Release và status Closed. Trả về hours estimate và USP (point) theo sprint. */
+export interface FetchVelocityBySprintOptions {
+  /** Lọc parent-child. Mặc định ExcludeChild. */
+  parentChild?: BacklogParentChildType;
+}
+
+/** Gtask + Task. Chỉ tính task có category Release và status Closed. Trả về hours estimate và USP (point) theo sprint. */
 export async function fetchVelocityBySprint(
-  projectId?: string | null
+  projectId?: string | null,
+  options?: FetchVelocityBySprintOptions
 ): Promise<VelocityBySprintResult> {
+  const parentChild = options?.parentChild ?? BacklogParentChild.ExcludeChild;
   const [milestones, gtaskTypeId, taskTypeId] = await Promise.all([
     getBacklogMilestones(projectId),
     getBacklogIssueTypeIdByName("Gtask", projectId),
@@ -50,7 +61,7 @@ export async function fetchVelocityBySprint(
       milestoneIds: [m.id],
       issueTypeIds,
       count: 100,
-      parentChild: BacklogParentChild.All,
+      parentChild,
     });
     // Chỉ tính task vừa có category Release, vừa status Closed
     const closedRelease = issues.filter(

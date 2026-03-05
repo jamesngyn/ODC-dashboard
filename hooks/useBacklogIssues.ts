@@ -1,10 +1,11 @@
+import { useMemo } from "react";
 import { QUERY_KEYS } from "@/constants/common";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
 
-import { getBacklogIssues } from "@/lib/api/backlog";
+import { BacklogParentChildParam } from "@/types/enums/common";
 import { BacklogIssue } from "@/types/interfaces/common";
-import { BacklogParentChildType } from "@/types/enums/common";
+import { getBacklogIssues } from "@/lib/api/backlog";
+
 import { useBacklogIssueTypes } from "./useBacklogIssueTypes";
 import { useBacklogProjectId } from "./useBacklogProjectId";
 
@@ -15,8 +16,8 @@ export interface UseBacklogIssuesOptions {
   issueTypeName?: string;
   /** Lọc theo milestone (sprint) ID. Không truyền hoặc mảng rỗng = tất cả. */
   milestoneIds?: number[];
-  /** Lọc parent-child (vd: ExcludeChild = chỉ Gtask + task không có con). */
-  parentChild?: BacklogParentChildType;
+  /** Lọc parent-child. Có thể truyền 1 giá trị hoặc mảng (vd: [3, 4]). */
+  parentChild?: BacklogParentChildParam;
   count?: number;
   enabled?: boolean;
 }
@@ -42,7 +43,8 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
     // Nếu có issueTypeName, tìm ID từ issueTypes
     if (issueTypeName && issueTypes.length > 0) {
       const foundType = issueTypes.find(
-        (t) => t.name.toLowerCase().trim() === issueTypeName.toLowerCase().trim()
+        (t) =>
+          t.name.toLowerCase().trim() === issueTypeName.toLowerCase().trim()
       );
       return foundType ? [foundType.id] : undefined;
     }
@@ -55,11 +57,13 @@ export const useBacklogIssues = (options?: UseBacklogIssuesOptions) => {
     backlogProjectId ?? "config",
     resolvedIssueTypeIds?.length
       ? [...resolvedIssueTypeIds].sort((a, b) => a - b).join(",")
-      : issueTypeName ?? "all",
+      : (issueTypeName ?? "all"),
     milestoneIds?.length
       ? [...milestoneIds].sort((a, b) => a - b).join(",")
       : "all",
-    parentChild ?? "all",
+    Array.isArray(parentChild)
+      ? [...parentChild].sort((a, b) => a - b).join(",")
+      : parentChild ?? "all",
   ] as const;
 
   const {

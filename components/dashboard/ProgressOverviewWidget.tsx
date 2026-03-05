@@ -2,18 +2,24 @@
 
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { DashboardStats } from "@/types/dashboard";
-import { BacklogCategory, BacklogParentChild, TaskStatus, TaskType } from "@/types/enums/common";
+import {
+  BacklogCategory,
+  BacklogParentChild,
+  TaskStatus,
+  TaskType,
+} from "@/types/enums/common";
 import {
   getActualEndDateFromIssue,
   mapBacklogCategoryToTaskStatus,
 } from "@/lib/api/backlog";
-import { isActualEndDateInRange, getBacklogIssueListUrl } from "@/lib/utils";
-import { useBacklogIssues } from "@/hooks/useBacklogIssues";
-import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
+import { getBacklogIssueListUrl, isActualEndDateInRange } from "@/lib/utils";
 import { useBacklogCategories } from "@/hooks/useBacklogCategories";
+import { useBacklogIssues } from "@/hooks/useBacklogIssues";
 import { useBacklogIssuesCountByCategories } from "@/hooks/useBacklogIssuesCountByCategory";
+import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
 import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
 import { useBacklogProjectId } from "@/hooks/useBacklogProjectId";
 import { useShowBacklogLinks } from "@/hooks/useShowBacklogLinks";
@@ -29,13 +35,14 @@ import { CommonSelect } from "@/components/ui/common-select";
 import { InsightCards } from "./InsightCards";
 import { StatusDonutChart } from "./StatusDonutChart";
 import { SummaryList } from "./SummaryList";
-import { useTranslation } from "react-i18next";
 
 const ALL_SPRINT_VALUE = "all";
 
 export const ProgressOverviewWidget = () => {
   const { t } = useTranslation();
-  const [selectedMilestoneId, setSelectedMilestoneId] = useState<number | null>(null);
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<number | null>(
+    null
+  );
   const { backlogProjectId } = useBacklogProjectId();
   const { showBacklogLinks } = useShowBacklogLinks();
 
@@ -47,9 +54,7 @@ export const ProgressOverviewWidget = () => {
 
   const { issueTypes, isLoading: isLoadingIssueTypes } = useBacklogIssueTypes();
   const progressIssueTypeIds = useMemo<number[]>(() => {
-    const task = issueTypes.find(
-      (t) => t.name.toLowerCase().trim() === "task"
-    );
+    const task = issueTypes.find((t) => t.name.toLowerCase().trim() === "task");
     const gtask = issueTypes.find(
       (t) => t.name.toLowerCase().trim() === "gtask"
     );
@@ -59,10 +64,15 @@ export const ProgressOverviewWidget = () => {
     return ids;
   }, [issueTypes]);
 
-  const { issues, isLoading: isLoadingIssues, isError: isErrorIssues } = useBacklogIssues({
+  const {
+    issues,
+    isLoading: isLoadingIssues,
+    isError: isErrorIssues,
+  } = useBacklogIssues({
     milestoneIds,
-    issueTypeIds: progressIssueTypeIds.length > 0 ? progressIssueTypeIds : undefined,
-    parentChild: BacklogParentChild.All,
+    issueTypeIds:
+      progressIssueTypeIds.length > 0 ? progressIssueTypeIds : undefined,
+    parentChild: BacklogParentChild.ExcludeChild,
     enabled: progressIssueTypeIds.length > 0,
   });
   const { categories, isLoading: isLoadingCategories } = useBacklogCategories();
@@ -73,8 +83,9 @@ export const ProgressOverviewWidget = () => {
   } = useBacklogIssuesCountByCategories({
     categories,
     milestoneIds,
-    issueTypeIds: progressIssueTypeIds.length > 0 ? progressIssueTypeIds : undefined,
-    parentChild: BacklogParentChild.All,
+    issueTypeIds:
+      progressIssueTypeIds.length > 0 ? progressIssueTypeIds : undefined,
+    parentChild: BacklogParentChild.ExcludeChild,
     enabled: categories.length > 0 && progressIssueTypeIds.length > 0,
   });
 
@@ -91,7 +102,10 @@ export const ProgressOverviewWidget = () => {
       return { data: null, categoryDistribution: [] };
     }
 
-    const totalTasks = categoryCounts.reduce((sum, item) => sum + item.count, 0);
+    const totalTasks = categoryCounts.reduce(
+      (sum, item) => sum + item.count,
+      0
+    );
 
     // 1. Category Distribution Logic - Sử dụng counts từ API với categoryId filter
     // Tạo map từ categoryCounts để lookup nhanh
@@ -113,17 +127,18 @@ export const ProgressOverviewWidget = () => {
         status,
         categoryName: category.name, // Lưu category name để hiển thị
         count,
-        percentage:
-          totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0,
+        percentage: totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0,
       };
     });
 
     // Biểu đồ tròn vẽ từ list category và count của từng category
-    const distribution = categoryDistribution.map(({ status, count, percentage }) => ({
-      status,
-      count,
-      percentage,
-    }));
+    const distribution = categoryDistribution.map(
+      ({ status, count, percentage }) => ({
+        status,
+        count,
+        percentage,
+      })
+    );
 
     // Key Insights Logic
     const onTrackCount = issues.filter((issue) => {
@@ -167,7 +182,9 @@ export const ProgressOverviewWidget = () => {
       if (isClosedOrResolved) return false;
       const hasReleaseCategory =
         issue.category?.some(
-          (c) => c.name?.trim().toLowerCase() === BacklogCategory.Release.toLowerCase()
+          (c) =>
+            c.name?.trim().toLowerCase() ===
+            BacklogCategory.Release.toLowerCase()
         ) ?? false;
       return hasReleaseCategory;
     }).length;
@@ -201,7 +218,9 @@ export const ProgressOverviewWidget = () => {
   }, [issues, categories, categoryCounts]);
 
   const selectValue =
-    selectedMilestoneId === null ? ALL_SPRINT_VALUE : String(selectedMilestoneId);
+    selectedMilestoneId === null
+      ? ALL_SPRINT_VALUE
+      : String(selectedMilestoneId);
   const handleSprintChange = (value: string) => {
     setSelectedMilestoneId(value === ALL_SPRINT_VALUE ? null : Number(value));
   };

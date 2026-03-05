@@ -2,18 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
+import { BacklogParentChild, TaskStatus } from "@/types/enums/common";
 import {
   calculateOverallCompletionByEstimate,
   calculateTasksCompleted,
   calculateUSPCompleted,
 } from "@/lib/utils";
-import { BacklogParentChild, TaskStatus } from "@/types/enums/common";
 import { useBacklogIssues } from "@/hooks/useBacklogIssues";
 import { useBacklogIssueTypes } from "@/hooks/useBacklogIssueTypes";
 import { useBacklogMilestones } from "@/hooks/useBacklogMilestones";
 import { CommonSelect } from "@/components/ui/common-select";
-import { useTranslation } from "react-i18next";
 
 import { KeyAchievements } from "./KeyAchievements";
 import { MetricCard } from "./MetricCard";
@@ -44,21 +44,37 @@ export function WorkloadDashboard() {
 
   const { milestones, isLoading: isLoadingMilestones } = useBacklogMilestones();
   const {
-    issues,
-    isLoading: isLoadingIssues,
+    issues: issuesTaskGtask,
+    isLoading: isLoadingIssuesTaskGtask,
+    isError: isErrorIssuesTaskGtask,
+  } = useBacklogIssues({
+    milestoneIds,
+    issueTypeIds:
+      taskAndGtaskTypeIds.length > 0 ? taskAndGtaskTypeIds : undefined,
+    parentChild: BacklogParentChild.ExcludeChild,
+    enabled: taskAndGtaskTypeIds.length > 0,
+  });
+
+  const {
+    issues: issuesTasks,
+    isLoading: isLoadingIssuesTasks,
     isError: isErrorIssues,
   } = useBacklogIssues({
     milestoneIds,
     issueTypeIds:
       taskAndGtaskTypeIds.length > 0 ? taskAndGtaskTypeIds : undefined,
-    parentChild: BacklogParentChild.All,
+    parentChild: [
+      BacklogParentChild.ChildOnly,
+      BacklogParentChild.NeitherParentNorChild,
+    ],
     enabled: taskAndGtaskTypeIds.length > 0,
   });
 
-  const isLoading = isLoadingIssues || isLoadingMilestones;
-  const isError = isErrorIssues;
+  const isLoading = isLoadingIssuesTaskGtask || isLoadingMilestones;
+  const isError = isErrorIssuesTaskGtask;
 
-  const issuesList = issues ?? [];
+  const issuesList = issuesTaskGtask ?? [];
+  const issuesTasksList = issuesTasks ?? [];
 
   // Chỉ lấy task độc lập + Gtask (loại trừ Bug), metric tính trên tập đó
   const overallCompletion = useMemo(() => {
@@ -67,32 +83,36 @@ export function WorkloadDashboard() {
   }, [issuesList]);
 
   const estimateCompleted = useMemo(() => {
-    const sumEstimate = (list: typeof issuesList) =>
+    const sumEstimate = (list: typeof issuesTasksList) =>
       list.reduce((s, issue) => s + Math.max(0, issue.estimatedHours ?? 0), 0);
-    const closedIssues = issuesList.filter(
+    const closedIssues = issuesTasksList.filter(
       (issue) => issue.status.name === TaskStatus.Closed
     );
     const completed = sumEstimate(closedIssues);
-    const total = sumEstimate(issuesList);
+    const total = sumEstimate(issuesTasksList);
     if (total === 0) return { completed: 0, total: 0 };
     return {
       completed: Math.round(completed),
       total: Math.round(total),
     };
-  }, [issuesList]);
+  }, [issuesTasksList]);
 
   const tasksCompleted = useMemo(
-    () => calculateTasksCompleted(issuesList),
-    [issuesList]
+    () => calculateTasksCompleted(issuesTasksList),
+    [issuesTasksList]
   );
 
+  console.log("issuesTasksList", issuesTasksList);
+
   const uspCompleted = useMemo(
-    () => calculateUSPCompleted(issuesList),
-    [issuesList]
+    () => calculateUSPCompleted(issuesTasksList),
+    [issuesTasksList]
   );
 
   const selectValue =
-    selectedMilestoneId === null ? ALL_SPRINT_VALUE : String(selectedMilestoneId);
+    selectedMilestoneId === null
+      ? ALL_SPRINT_VALUE
+      : String(selectedMilestoneId);
   const handleSprintChange = (value: string) => {
     setSelectedMilestoneId(value === ALL_SPRINT_VALUE ? null : Number(value));
   };

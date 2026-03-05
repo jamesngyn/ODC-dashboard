@@ -1,8 +1,9 @@
 "use client";
 
+import { useTranslation } from "react-i18next";
+
 import { TaskType } from "@/types/enums/common";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "react-i18next";
 
 interface SummaryListProps {
   data: {
@@ -16,17 +17,17 @@ interface SummaryListProps {
 const BAR_COLORS: Record<TaskType, string> = {
   [TaskType.Requirement]: "bg-[#22C55E]",
   [TaskType.Development]: "bg-[#5C9DFF]",
-  [TaskType.Testing]: "bg-[#F97316]",
+  [TaskType.Testing]: "bg-[#FFC738]",
   [TaskType.UAT]: "bg-[#A687FF]",
-  [TaskType.Release]: "bg-[#9333EA]",
+  [TaskType.Release]: "bg-[#F97316]",
 };
 
 const DOT_COLORS: Record<TaskType, string> = {
   [TaskType.Requirement]: "bg-[#22C55E]",
   [TaskType.Development]: "bg-[#5C9DFF]",
-  [TaskType.Testing]: "bg-[#F97316]",
+  [TaskType.Testing]: "bg-[#FFC738]",
   [TaskType.UAT]: "bg-[#A687FF]",
-  [TaskType.Release]: "bg-[#9333EA]",
+  [TaskType.Release]: "bg-[#F97316]",
 };
 
 export const SummaryList = ({ data }: SummaryListProps) => {
@@ -42,7 +43,8 @@ export const SummaryList = ({ data }: SummaryListProps) => {
             key={item.status}
             className={cn(
               "flex items-center gap-3 py-3",
-              index < data.length - 1 && "border-b border-zinc-100 dark:border-zinc-800"
+              index < data.length - 1 &&
+                "border-b border-zinc-100 dark:border-zinc-800"
             )}
           >
             <div className="flex min-w-0 shrink-0 items-center gap-2 sm:min-w-[120px]">
@@ -68,10 +70,10 @@ export const SummaryList = ({ data }: SummaryListProps) => {
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <span className="text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
+              <span className="text-sm font-bold text-zinc-900 tabular-nums dark:text-zinc-100">
                 {item.count}
               </span>
-              <span className="w-9 text-right text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
+              <span className="w-9 text-right text-sm text-zinc-700 tabular-nums dark:text-zinc-300">
                 {item.percentage}%
               </span>
             </div>

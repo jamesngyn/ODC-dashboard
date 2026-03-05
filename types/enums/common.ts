@@ -56,6 +56,11 @@ export const BacklogParentChild = {
 export type BacklogParentChildType =
   (typeof BacklogParentChild)[keyof typeof BacklogParentChild];
 
+/** Cho phép truyền 1 giá trị hoặc mảng (vd: [3, 4]). API gọi từng giá trị rồi gộp/kết quả. */
+export type BacklogParentChildParam =
+  | BacklogParentChildType
+  | BacklogParentChildType[];
+
 /**
  * Bug Type (custom field "Bug Type" trong Backlog).
  * - Internal Bug: Tìm thấy bởi QA/Dev nội bộ
@@ -68,5 +73,4 @@ export const BugType = {
   Leakage: "Leakage",
 } as const;
 
-export type BugTypeValue =
-  (typeof BugType)[keyof typeof BugType];
+export type BugTypeValue = (typeof BugType)[keyof typeof BugType];
