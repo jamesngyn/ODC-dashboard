@@ -1,5 +1,5 @@
 import {
-  getBacklogIssuesByMilestone,
+  getBacklogIssues,
   getBacklogMilestones,
   getBacklogIssueTypeIdByName,
 } from "@/lib/api/backlog";
@@ -56,11 +56,10 @@ export async function fetchVelocityBySprint(
   const uspPoints: VelocityBySprintPoint[] = [];
 
   for (const m of last) {
-    const issues = await getBacklogIssuesByMilestone({
+    const issues = await getBacklogIssues({
       projectId,
       milestoneIds: [m.id],
       issueTypeIds,
-      count: 100,
       parentChild,
     });
     // Chỉ tính task vừa có category Release, vừa status Closed

@@ -2,11 +2,15 @@ import { HOURS_PER_MAN_MONTH, SEVERITY_WEIGHTS } from "@/constants/common";
 import {
   getActualEndDateFromIssue,
   getBacklogIssueTypeIdByName,
-  getBacklogIssuesByMilestone,
+  getBacklogIssues,
   getBacklogMilestones,
 } from "@/lib/api/backlog";
 import { calculateTotalActualHours } from "@/lib/utils";
-import { BugType, type BugTypeValue } from "@/types/enums/common";
+import {
+  BacklogParentChild,
+  BugType,
+  type BugTypeValue,
+} from "@/types/enums/common";
 import type { BacklogIssue } from "@/types/interfaces/common";
 import type {
   DefectDensityPoint,
@@ -331,8 +335,6 @@ export function calculateRemovalEfficiency(
   return (countInternal / totalBugCount) * 100;
 }
 
-const DEFECT_DENSITY_SPRINT_LIMIT = 6;
-
 export async function fetchDefectDensityBySprint(
   projectId?: string | null
 ): Promise<DefectDensityPoint[]> {
@@ -349,16 +351,14 @@ export async function fetchDefectDensityBySprint(
       return a.releaseDueDate.localeCompare(b.releaseDueDate);
     });
 
-  const last = sorted.slice(-DEFECT_DENSITY_SPRINT_LIMIT);
-
-  if (last.length === 0) return [];
+  if (sorted.length === 0) return [];
 
   const points: DefectDensityPoint[] = [];
-  for (const m of last) {
-    const allIssues = await getBacklogIssuesByMilestone({
+  for (const m of sorted) {
+    const allIssues = await getBacklogIssues({
       projectId,
       milestoneIds: [m.id],
-      count: 100,
+      parentChild: BacklogParentChild.ExcludeChild,
     });
     const bugs =
       bugTypeId != null

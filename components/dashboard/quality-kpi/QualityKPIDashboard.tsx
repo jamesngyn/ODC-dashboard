@@ -73,6 +73,7 @@ export function QualityKPIDashboard() {
       parentChild: BacklogParentChild.ExcludeChild,
     }
   );
+
   const { count: totalBugCount } = useBacklogIssuesCount({
     issueTypeIds: bugId != null ? [bugId] : undefined,
     milestoneIds,
