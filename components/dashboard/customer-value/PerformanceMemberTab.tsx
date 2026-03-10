@@ -218,14 +218,18 @@ export function PerformanceMemberTab({
       .filter((user: BacklogUser) => {
         const email = user.mailAddress?.trim() ?? "";
         const acms = email ? acmsByEmail.get(email.toLowerCase()) : undefined;
+        // Loại bỏ tất cả user không mapping được với dữ liệu ACMS
+        if (!acms) {
+          return false;
+        }
         if (selectedProjectId !== ALL_VALUE) {
           const project = projects.find(
             (p) => String(p.id) === selectedProjectId
           );
-          if (project && (!acms || acms.project !== project.name)) return false;
+          if (project && acms.project !== project.name) return false;
         }
         if (selectedTeamId !== ALL_VALUE) {
-          if (!acms || String(acms.team?.id) !== selectedTeamId) return false;
+          if (String(acms.team?.id) !== selectedTeamId) return false;
         }
         return true;
       })

@@ -1,11 +1,5 @@
 import { HOURS_PER_MAN_MONTH, SEVERITY_WEIGHTS } from "@/constants/common";
-import {
-  getActualEndDateFromIssue,
-  getBacklogIssueTypeIdByName,
-  getBacklogIssues,
-  getBacklogMilestones,
-} from "@/lib/api/backlog";
-import { calculateTotalActualHours } from "@/lib/utils";
+
 import {
   BacklogParentChild,
   BugType,
@@ -17,6 +11,13 @@ import type {
   DefectTrendsByWeek,
   SeverityItem,
 } from "@/types/interfaces/quality-kpi";
+import {
+  getActualEndDateFromIssue,
+  getBacklogIssues,
+  getBacklogIssueTypeIdByName,
+  getBacklogMilestones,
+} from "@/lib/api/backlog";
+import { calculateTotalActualHours } from "@/lib/utils";
 
 type SeverityLevel = SeverityItem["level"];
 
@@ -89,7 +90,7 @@ export function getSeverityCountsFromBugs(
 
   const internalExternal = bugs.filter((b) => {
     const t = getBugTypeFromIssue(b);
-    return t
+    return t;
   });
 
   const counts: Record<SeverityLevel, number> = {
@@ -196,7 +197,12 @@ export function computeDefectTrendsByWeek(
   weekCount: number = 4
 ): DefectTrendsByWeek[] {
   const now = new Date();
-  const result: { week: string; found: number; fixed: number; closed: number }[] = [];
+  const result: {
+    week: string;
+    found: number;
+    fixed: number;
+    closed: number;
+  }[] = [];
   const weekStarts: Date[] = [];
   const weekEnds: Date[] = [];
 
@@ -293,8 +299,21 @@ export function calculateDefectLeakage(
 }
 
 /**
- * Defect density theo man-month: weightedBugs / (totalActualHoursAll / 160).
- * Mẫu số = tổng actual hours của tất cả các task có tính bug (kể cả bug closed) / 160.
+ * Defect Density (per man-month) – công thức và spec:
+ *
+ * Công thức:
+ *   defectDensity = weightedSum(severityCounts) / manMonths
+ *   manMonths     = totalActualHoursAll / HOURS_PER_MAN_MONTH  (160)
+ *
+ * Trong đó:
+ *   weightedSum   = Σ (count[level] × SEVERITY_WEIGHTS[level])
+ *   SEVERITY_WEIGHTS: Crash/Critical=10, Major=5, Normal=3, Low=1
+ *
+ * Spec dữ liệu:
+ *   - severityCounts: từ getSeverityCountsFromBugs(bugs) – chỉ bug có Bug Type
+ *     (Internal Bug / External Bug), không tính Leakage.
+ *   - totalActualHoursAll: tổng actual hours của tất cả issue trong phạm vi
+ *     (task + bug, ExcludeChild), dùng làm mẫu số (effort).
  */
 export function calculateDefectDensityPerManMonth(
   severityCounts: SeverityItem[],
