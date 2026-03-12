@@ -153,6 +153,7 @@
     "busyRateMemberDescription": "Data from ACMS by Day / Week / Month per Member, Project, Division (Hades 1, Hades 2, Faderless, Bonne). Effort Deviation = Actual Effort / Calendar Effort.",
     "performanceMemberDescription": "Data from Backlog by Sprint / Milestone / Project / Division for closed tasks. Performance by Estimate = Estimated Effort / (Actual Effort × Rank coefficient); same for Re-Estimate and Point.",
     "emptyTable": "No data available",
+    "projectNoData": "no data yet",
     "filterAll": "All",
     "filterByName": "Name",
     "filterByNamePlaceholder": "Search by name, code, email",

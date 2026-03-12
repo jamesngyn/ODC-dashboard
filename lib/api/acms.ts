@@ -103,7 +103,13 @@ export interface AcmsResourcesParams {
 
 export const getAcmsResources = (
   params?: AcmsResourcesParams
-): Promise<AcmsResourcesResponse> => sendGet(`${baseUrl}/resources`, params);
+): Promise<AcmsResourcesResponse> => {
+  const paramsWithProjectType = {
+    ...params,
+    "project_type[]": [1, 2],
+  };
+  return sendGet(`${baseUrl}/resources`, paramsWithProjectType);
+};
 
 export const getAcmsProjects = (): Promise<AcmsProjectsResponse> =>
   USE_FAKE_ACMS_PROJECTS

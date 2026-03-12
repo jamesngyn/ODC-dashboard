@@ -22,7 +22,11 @@ import { buildProjectSelectOptions } from "@/lib/utils/customer-value";
 import type { CommonSelectOption } from "@/components/ui/common-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ALL_VALUE, BusyRateMemberFilters, type PeriodMode } from "./BusyRateMemberFilters";
+import {
+  ALL_VALUE,
+  BusyRateMemberFilters,
+  type PeriodMode,
+} from "./BusyRateMemberFilters";
 import { BusyRateMemberTab } from "./BusyRateMemberTab";
 import { PerformanceMemberFilters } from "./PerformanceMemberFilters";
 import { PerformanceMemberTab } from "./PerformanceMemberTab";
@@ -152,11 +156,7 @@ export function CustomerValueDashboard() {
 
   return (
     <div className="space-y-6">
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="w-full"
-      >
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="busy-rate">
             {t("customerValue.busyRateMember")}

@@ -1,6 +1,7 @@
-import type { CommonSelectOption } from "@/components/ui/common-select";
-import type { AcmsProject, AcmsResource } from "@/types/interfaces/acms";
 import { eachDayOfInterval, isWeekend, parseISO } from "date-fns";
+
+import type { AcmsProject, AcmsResource } from "@/types/interfaces/acms";
+import type { CommonSelectOption } from "@/components/ui/common-select";
 
 export const HOURS_PER_WORKING_DAY = 8;
 
@@ -64,9 +65,7 @@ export function getCalendarEffortHours(
       );
       if (totalAllocationPct > 0) {
         const hours =
-          workingDays *
-          HOURS_PER_WORKING_DAY *
-          (totalAllocationPct / 100);
+          workingDays * HOURS_PER_WORKING_DAY * (totalAllocationPct / 100);
         return Math.round(hours * 10) / 10;
       }
     }
@@ -111,7 +110,5 @@ export function getProjectByCode(
 ): AcmsProject | undefined {
   if (!code?.trim()) return undefined;
   const normalized = code.trim().toLowerCase();
-  return projects.find(
-    (p) => p.code?.trim().toLowerCase() === normalized
-  );
+  return projects.find((p) => p.code?.trim().toLowerCase() === normalized);
 }

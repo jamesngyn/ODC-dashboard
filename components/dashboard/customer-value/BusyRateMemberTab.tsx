@@ -1,10 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useDebounce } from "@/hooks/useDebounce";
+import { QUERY_KEYS } from "@/constants/common";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import type { AcmsProject, AcmsResource } from "@/types/interfaces/acms";
+import {
+  getAcmsProjects,
+  getAcmsResources,
+  type AcmsResourcesParams,
+} from "@/lib/api/acms";
+import { getCalendarEffortHours } from "@/lib/utils/customer-value";
+import { useDebounce } from "@/hooks/useDebounce";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,22 +23,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CommonTable } from "@/components/ui/common-table";
-import type { AcmsResource, AcmsProject } from "@/types/interfaces/acms";
 import type { TableColumn } from "@/components/ui/common-table";
-import {
-  getAcmsResources,
-  getAcmsProjects,
-  type AcmsResourcesParams,
-} from "@/lib/api/acms";
-import { QUERY_KEYS } from "@/constants/common";
-import { getCalendarEffortHours } from "@/lib/utils/customer-value";
-import { ALL_VALUE, type PeriodMode } from "./BusyRateMemberFilters";
 import {
   Pagination,
   PaginationContent,
   PaginationItem,
 } from "@/components/ui/pagination";
-import { Button } from "@/components/ui/button";
+
+import { ALL_VALUE, type PeriodMode } from "./BusyRateMemberFilters";
 
 export interface BusyRateMemberTabProps {
   periodMode: PeriodMode;
@@ -105,9 +107,21 @@ export function BusyRateMemberTab({
       base.name = debouncedName;
     }
     return base;
-  }, [from, to, periodMode, page, selectedProjectId, selectedTeamId, debouncedName]);
+  }, [
+    from,
+    to,
+    periodMode,
+    page,
+    selectedProjectId,
+    selectedTeamId,
+    debouncedName,
+  ]);
 
-  const { data: response, isLoading, isError } = useQuery({
+  const {
+    data: response,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: [
       ...QUERY_KEYS.CUSTOMER_VALUE.ACMS_RESOURCES,
       from,
@@ -126,16 +140,13 @@ export function BusyRateMemberTab({
     queryFn: getAcmsProjects,
   });
 
-  const projects: AcmsProject[] =
-    projectsResponse?.projects?.data ?? [];
+  const projects: AcmsProject[] = projectsResponse?.projects?.data ?? [];
 
   const data = response?.resources?.data ?? [];
   const currentPage = response?.resources?.current_page ?? 1;
   const lastPage = response?.resources?.last_page;
   const hasNextPage =
-    lastPage != null
-      ? currentPage < lastPage
-      : data.length === 20;
+    lastPage != null ? currentPage < lastPage : data.length === 20;
   const hasPrevPage = currentPage > 1;
 
   const columns = useMemo<TableColumn<AcmsResource>[]>(
@@ -170,9 +181,7 @@ export function BusyRateMemberTab({
         header: t("customerValue.rankCoefficient"),
         accessor: (r: AcmsResource) => {
           const coeff = r.level?.coefficient;
-          return coeff != null
-            ? coeff.toFixed(2).replace(".", ",")
-            : "—";
+          return coeff != null ? coeff.toFixed(2).replace(".", ",") : "—";
         },
       },
       {
@@ -203,12 +212,7 @@ export function BusyRateMemberTab({
         key: "effortDeviation",
         header: t("customerValue.effortDeviation"),
         accessor: (r: AcmsResource) => {
-          const pct = effortDeviationPercent(
-            r,
-            from,
-            to,
-            selectedProjectId
-          );
+          const pct = effortDeviationPercent(r, from, to, selectedProjectId);
           return pct !== null ? `${pct.toFixed(1)}%` : "-";
         },
         className: "font-medium",
@@ -219,7 +223,7 @@ export function BusyRateMemberTab({
 
   if (isLoading) {
     return (
-      <Card className="border-0 bg-zinc-50/50 dark:bg-zinc-900/30 shadow-none">
+      <Card className="border-0 bg-zinc-50/50 shadow-none dark:bg-zinc-900/30">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">
             {t("customerValue.busyRateMember")}
@@ -237,7 +241,7 @@ export function BusyRateMemberTab({
 
   if (isError) {
     return (
-      <Card className="border-0 bg-zinc-50/50 dark:bg-zinc-900/30 shadow-none">
+      <Card className="border-0 bg-zinc-50/50 shadow-none dark:bg-zinc-900/30">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">
             {t("customerValue.busyRateMember")}
@@ -247,16 +251,14 @@ export function BusyRateMemberTab({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex min-h-[200px] items-center justify-center pt-0">
-          <p className="text-muted-foreground text-sm">
-            {t("common.error")}
-          </p>
+          <p className="text-muted-foreground text-sm">{t("common.error")}</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="border-0 bg-zinc-50/50 dark:bg-zinc-900/30 shadow-none">
+    <Card className="border-0 bg-zinc-50/50 shadow-none dark:bg-zinc-900/30">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold">
           {t("customerValue.busyRateMember")}

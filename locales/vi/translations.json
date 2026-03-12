@@ -153,6 +153,7 @@
     "busyRateMemberDescription": "Dữ liệu từ ACMS theo Ngày / Tuần / Tháng của Member theo Project, Division (Hades 1, Hades 2, Faderless, Bonne). Effort Deviation = Actual Effort / Calendar Effort.",
     "performanceMemberDescription": "Dữ liệu từ Backlog theo Sprint / Milestone / Project / Division. Tính cho các task đã closed. Performance by Estimate = Estimated Effort / (Actual Effort × Hệ số Rank); tương tự Re-Estimate và Point.",
     "emptyTable": "Chưa có dữ liệu",
+    "projectNoData": "chưa có dữ liệu",
     "filterAll": "Tất cả",
     "filterByName": "Tên",
     "filterByNamePlaceholder": "Tìm theo tên, mã NV, email",
