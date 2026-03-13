@@ -23,13 +23,7 @@ import { useTranslation } from "react-i18next";
 
 import { getAcmsProjects } from "@/lib/api/acms";
 import { useBacklogProjectId } from "@/hooks/useBacklogProjectId";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CommonSelect } from "@/components/ui/common-select";
 import {
   Sidebar,
   SidebarContent,
@@ -62,6 +56,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         (p) => p.backlog_project_id != null && p.backlog_project_id !== ""
       ),
     [projects]
+  );
+
+  const backlogProjectOptions = React.useMemo(
+    () =>
+      projectsWithBacklog.map((p) => ({
+        value: String(p.backlog_project_id),
+        label: `${p.name}`,
+      })),
+    [projectsWithBacklog]
   );
 
   const handleBacklogProjectChange = React.useCallback(
@@ -157,38 +160,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
             ) : (
-              <Select
-                value={
+              <CommonSelect
+                id="sidebar-backlog-project"
+                value={String(
                   backlogProjectId ??
-                  projectsWithBacklog[0]?.backlog_project_id ??
-                  ""
-                }
+                    projectsWithBacklog[0]?.backlog_project_id ??
+                    ""
+                )}
                 onValueChange={handleBacklogProjectChange}
-              >
-                <SelectTrigger
-                  className="h-9 w-full border-2 border-sidebar-border bg-sidebar-accent/50 text-sidebar-foreground shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] focus:ring-2 focus:ring-sidebar-ring dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] [&>span]:truncate"
-                  id="sidebar-backlog-project"
-                >
-                  <SelectValue placeholder={t("settings.selectProject")} />
-                </SelectTrigger>
-                <SelectContent
-                  className="border-sidebar-border bg-sidebar max-h-[var(--radix-select-content-available-height)] shadow-lg"
-                  sideOffset={4}
-                >
-                  {projectsWithBacklog.map((project) => (
-                    <SelectItem
-                      key={project.id}
-                      value={project.backlog_project_id as string}
-                      className="focus:bg-sidebar-accent focus:text-sidebar-accent-foreground"
-                    >
-                      <span className="truncate">
-                        {project.name}
-                        {project.code ? ` (${project.code})` : ""}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={backlogProjectOptions}
+                placeholder={t("settings.selectProject")}
+                triggerClassName="h-9 max-w-[220px] border-2 border-sidebar-border bg-sidebar-accent/50 text-sidebar-foreground shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] focus:ring-2 focus:ring-sidebar-ring dark:shadow-[0_1px_3px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] [&>span]:truncate"
+              />
             )}
           </div>
         </SidebarGroup>

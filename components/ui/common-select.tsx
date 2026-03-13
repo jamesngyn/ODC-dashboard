@@ -42,6 +42,11 @@ export const CommonSelect = ({
   vertical = false,
 }: CommonSelectProps) => {
   const selectId = id ?? "common-select";
+  const valueStr = value ?? "";
+  const optionValues = options.map((opt) => String(opt.value));
+  const resolvedValue = optionValues.includes(valueStr)
+    ? valueStr
+    : (options[0]?.value != null ? String(options[0].value) : "");
 
   return (
     <div
@@ -58,13 +63,17 @@ export const CommonSelect = ({
           {label}
         </Label>
       )}
-      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <Select
+        value={resolvedValue === "" ? undefined : resolvedValue}
+        onValueChange={onValueChange}
+        disabled={disabled}
+      >
         <SelectTrigger id={selectId} className={triggerClassName}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
           {options.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
+            <SelectItem key={String(opt.value)} value={String(opt.value)}>
               {opt.label}
             </SelectItem>
           ))}

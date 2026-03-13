@@ -1,23 +1,24 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { QUERY_KEYS } from "@/constants/common";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { getAcmsProjects } from "@/lib/api/acms";
 import { useBacklogProjectId } from "@/hooks/useBacklogProjectId";
 import { useShowBacklogLinks } from "@/hooks/useShowBacklogLinks";
-import { getAcmsProjects } from "@/lib/api/acms";
-import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { CommonSelect } from "@/components/ui/common-select";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -36,6 +37,15 @@ export default function SettingsPage() {
         (p) => p.backlog_project_id != null && p.backlog_project_id !== ""
       ),
     [projects]
+  );
+
+  const backlogProjectOptions = useMemo(
+    () =>
+      projectsWithBacklog.map((p) => ({
+        value: String(p.backlog_project_id),
+        label: `${p.name}${p.code ? ` (${p.code})` : ""}`,
+      })),
+    [projectsWithBacklog]
   );
 
   useEffect(() => {
@@ -69,7 +79,7 @@ export default function SettingsPage() {
               <Label htmlFor="show-backlog-links" className="text-base">
                 {t("settings.showBacklogLinks")}
               </Label>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {t("settings.showBacklogLinksDescription")}
               </p>
             </div>
@@ -80,7 +90,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="project-select">{t("settings.backlogProject")}</Label>
             <p className="text-sm text-muted-foreground">
               {t("settings.backlogProjectDescription")}
@@ -91,30 +101,20 @@ export default function SettingsPage() {
                 {t("common.loading")}
               </div>
             ) : (
-              <Select
-                value={
+              <CommonSelect
+                id="project-select"
+                value={String(
                   backlogProjectId ??
-                  (projectsWithBacklog[0]?.backlog_project_id ?? "")
-                }
+                  projectsWithBacklog[0]?.backlog_project_id ??
+                  ""
+                )}
                 onValueChange={handleProjectChange}
-              >
-                <SelectTrigger id="project-select" className="w-full max-w-md">
-                  <SelectValue placeholder={t("settings.selectProject")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {projectsWithBacklog.map((project) => (
-                    <SelectItem
-                      key={project.id}
-                      value={project.backlog_project_id as string}
-                    >
-                      {project.name}
-                      {project.code ? ` (${project.code})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={backlogProjectOptions}
+                placeholder={t("settings.selectProject")}
+                triggerClassName="w-full max-w-md"
+              />
             )}
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>
