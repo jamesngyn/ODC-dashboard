@@ -42,6 +42,13 @@ export function getActualEndDateFromIssue(issue: BacklogIssue): string | null {
   return v || null;
 }
 
+function normalizeDateOnly(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = String(value).trim();
+  const dateOnlyMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+  return dateOnlyMatch?.[1] ?? null;
+}
+
 export interface GetBacklogTasksByActualEndDateRangeOptions {
   projectId?: string | null;
   /** Lọc theo status (thường truyền Closed). */
@@ -66,13 +73,16 @@ export async function getBacklogTasksByActualEndDateRange(
 ): Promise<BacklogIssue[]> {
   const { projectId, statusIds, from, to, issueTypeIds } = options;
   const issues = await getBacklogIssues({ projectId, statusIds, issueTypeIds });
+  const normalizedFrom = normalizeDateOnly(from);
+  const normalizedTo = normalizeDateOnly(to);
+
+  if (!normalizedFrom || !normalizedTo) return [];
 
   return issues.filter((issue) => {
-    const actualEnd = getActualEndDateFromIssue(issue);
+    const actualEnd = normalizeDateOnly(getActualEndDateFromIssue(issue));
     if (!actualEnd) return false;
 
-    // Expect yyyy-MM-dd so string compare is safe
-    return actualEnd >= from && actualEnd <= to;
+    return actualEnd >= normalizedFrom && actualEnd <= normalizedTo;
   });
 }
 
