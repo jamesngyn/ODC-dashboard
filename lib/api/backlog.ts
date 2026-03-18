@@ -42,6 +42,40 @@ export function getActualEndDateFromIssue(issue: BacklogIssue): string | null {
   return v || null;
 }
 
+export interface GetBacklogTasksByActualEndDateRangeOptions {
+  projectId?: string | null;
+  /** Lọc theo status (thường truyền Closed). */
+  statusIds?: number[];
+  /** yyyy-MM-dd */
+  from: string;
+  /** yyyy-MM-dd */
+  to: string;
+  /** Lọc theo loại issue (vd: Task). Cần lấy id từ getBacklogIssueTypes. */
+  issueTypeIds?: number[];
+}
+
+/**
+ * Lấy issues có custom field "Actual End-date" nằm trong [from, to]
+ * theo các filter đầu vào.
+ *
+ * Lưu ý: Backlog API không hỗ trợ filter theo custom field dạng date range,
+ * nên sẽ fetch issues theo các filter cơ bản rồi filter tại client.
+ */
+export async function getBacklogTasksByActualEndDateRange(
+  options: GetBacklogTasksByActualEndDateRangeOptions
+): Promise<BacklogIssue[]> {
+  const { projectId, statusIds, from, to, issueTypeIds } = options;
+  const issues = await getBacklogIssues({ projectId, statusIds, issueTypeIds });
+
+  return issues.filter((issue) => {
+    const actualEnd = getActualEndDateFromIssue(issue);
+    if (!actualEnd) return false;
+
+    // Expect yyyy-MM-dd so string compare is safe
+    return actualEnd >= from && actualEnd <= to;
+  });
+}
+
 /**
  * Map Backlog category sang TaskType
  * Mapping rules:
@@ -165,6 +199,8 @@ export interface GetBacklogIssuesOptions {
   projectId?: string | null;
   /** Lọc theo loại issue (vd: Bug). Cần lấy id từ getBacklogIssueTypes. */
   issueTypeIds?: number[];
+  /** Lọc theo tên loại issue (vd: Task, Bug). Sẽ tự resolve sang issueTypeIds. */
+  issueTypeNames?: string[];
   /** Lọc theo category ID. Cần lấy id từ getBacklogCategories. */
   categoryIds?: number[];
   /** Lọc theo milestone (sprint) ID. Nếu không truyền hoặc mảng rỗng = tất cả. */
@@ -199,6 +235,7 @@ export const getBacklogIssues = async (
   const {
     projectId,
     issueTypeIds,
+    issueTypeNames,
     categoryIds,
     milestoneIds,
     statusIds,
@@ -210,10 +247,7 @@ export const getBacklogIssues = async (
     startDateUntil,
   } = options || {};
 
-  if (
-    Array.isArray(parentChildParam) &&
-    parentChildParam.length > 0
-  ) {
+  if (Array.isArray(parentChildParam) && parentChildParam.length > 0) {
     const results = await Promise.all(
       parentChildParam.map((pc) =>
         getBacklogIssues({ ...options, parentChild: pc })
@@ -229,6 +263,27 @@ export const getBacklogIssues = async (
 
   const parentChild = parentChildParam;
   const effectiveProjectId = getEffectiveProjectId(projectId);
+  let resolvedIssueTypeIds = issueTypeIds;
+
+  if (issueTypeNames && issueTypeNames.length > 0) {
+    const normalizedNames = issueTypeNames.map((name) =>
+      name.toLowerCase().trim()
+    );
+    const types = await getBacklogIssueTypes(projectId);
+    const matchedTypeIds = types
+      .filter((type) =>
+        normalizedNames.includes(type.name.toLowerCase().trim())
+      )
+      .map((type) => type.id);
+
+    if (matchedTypeIds.length === 0) {
+      return [];
+    }
+
+    resolvedIssueTypeIds = Array.from(
+      new Set([...(issueTypeIds ?? []), ...matchedTypeIds])
+    );
+  }
 
   const buildParams = (opts: {
     count: number;
@@ -243,8 +298,8 @@ export const getBacklogIssues = async (
       count: opts.count,
       offset: opts.offset,
     };
-    if (issueTypeIds && issueTypeIds.length > 0) {
-      params["issueTypeId[]"] = issueTypeIds;
+    if (resolvedIssueTypeIds && resolvedIssueTypeIds.length > 0) {
+      params["issueTypeId[]"] = resolvedIssueTypeIds;
     }
     if (categoryIds && categoryIds.length > 0) {
       params["categoryId[]"] = categoryIds;
@@ -453,10 +508,7 @@ export const getBacklogIssuesCount = async (
   options?: GetBacklogIssuesCountOptions
 ): Promise<number> => {
   const parentChildParam = options?.parentChild;
-  if (
-    Array.isArray(parentChildParam) &&
-    parentChildParam.length > 0
-  ) {
+  if (Array.isArray(parentChildParam) && parentChildParam.length > 0) {
     const counts = await Promise.all(
       parentChildParam.map((pc) =>
         getBacklogIssuesCount({ ...options, parentChild: pc })

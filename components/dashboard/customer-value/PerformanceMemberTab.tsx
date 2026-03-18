@@ -13,9 +13,10 @@ import type { BacklogIssue, BacklogUser } from "@/types/interfaces/common";
 import type { PerformanceMember } from "@/types/interfaces/customer-value";
 import { getAcmsResources, type AcmsResourcesParams } from "@/lib/api/acms";
 import {
-  getBacklogIssues,
+  getBacklogIssueTypes,
   getBacklogProjectMembers,
   getBacklogStatuses,
+  getBacklogTasksByActualEndDateRange,
 } from "@/lib/api/backlog";
 import { getPointFromIssue, getReEstimateEffortFromIssue } from "@/lib/utils";
 import { useBacklogProjectId } from "@/hooks/useBacklogProjectId";
@@ -130,6 +131,8 @@ export function PerformanceMemberTab({
     queryFn: () => getBacklogProjectMembers(false, backlogProjectId),
   });
 
+  console.log("members", members);
+
   const { data: statuses = [], isLoading: isLoadingStatuses } = useQuery({
     queryKey: [
       ...QUERY_KEYS.CUSTOMER_VALUE.BACKLOG_STATUSES,
@@ -145,6 +148,21 @@ export function PerformanceMemberTab({
     return closed?.id ?? null;
   }, [statuses]);
 
+  const { data: issueTypes = [], isLoading: isLoadingIssueTypes } = useQuery({
+    queryKey: [
+      ...QUERY_KEYS.BACKLOG.ISSUE_TYPES,
+      backlogProjectId ?? "config",
+    ],
+    queryFn: () => getBacklogIssueTypes(backlogProjectId),
+  });
+
+  const taskIssueTypeId = useMemo(() => {
+    const taskType = issueTypes.find(
+      (type) => type.name?.toLowerCase() === "task"
+    );
+    return taskType?.id ?? null;
+  }, [issueTypes]);
+
   const { data: closedIssues = [], isLoading: isLoadingIssues } = useQuery({
     queryKey: [
       ...QUERY_KEYS.CUSTOMER_VALUE.PERFORMANCE_CLOSED_ISSUES(
@@ -153,15 +171,17 @@ export function PerformanceMemberTab({
       backlogProjectId ?? "config",
       from,
       to,
+      taskIssueTypeId ?? "task",
     ],
     queryFn: () =>
-      getBacklogIssues({
+      getBacklogTasksByActualEndDateRange({
         projectId: backlogProjectId,
         statusIds: closedStatusId != null ? [closedStatusId] : undefined,
-        startDateSince: from,
-        startDateUntil: to,
+        issueTypeIds: taskIssueTypeId != null ? [taskIssueTypeId] : undefined,
+        from,
+        to,
       }),
-    enabled: closedStatusId != null,
+    enabled: closedStatusId != null && taskIssueTypeId != null,
   });
 
   const acmsResourceParams = useMemo((): AcmsResourcesParams => {
@@ -194,6 +214,8 @@ export function PerformanceMemberTab({
     ],
     queryFn: () => getAcmsResources(acmsResourceParams),
   });
+
+  console.log("acmsResponse", acmsResponse);
 
   const acmsByEmail = useMemo(() => {
     const list = acmsResponse?.resources?.data ?? [];
@@ -290,6 +312,8 @@ export function PerformanceMemberTab({
     projects,
   ]);
 
+  console.log("data", data);
+
   const columns = useMemo<TableColumn<PerformanceMember>[]>(
     () => [
       {
@@ -375,7 +399,11 @@ export function PerformanceMemberTab({
   );
 
   const isLoading =
-    isLoadingMembers || isLoadingStatuses || isLoadingIssues || isLoadingAcms;
+    isLoadingMembers ||
+    isLoadingStatuses ||
+    isLoadingIssueTypes ||
+    isLoadingIssues ||
+    isLoadingAcms;
 
   return (
     <Card className="border-0 bg-zinc-50/50 shadow-none dark:bg-zinc-900/30">
