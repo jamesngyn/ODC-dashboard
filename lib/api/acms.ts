@@ -28,7 +28,7 @@ export const getAcmsResources = (
 ): Promise<AcmsResourcesResponse> => {
   const paramsWithProjectType = {
     ...params,
-    "project_type[]": [1, 2],
+    // "project_type[]": [1, 2],
   };
   return sendGet(`${baseUrl}/resources`, paramsWithProjectType);
 };

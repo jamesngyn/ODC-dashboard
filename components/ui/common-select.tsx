@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils/index";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -7,8 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils/index";
 
 export interface CommonSelectOption {
   value: string;
@@ -46,7 +46,9 @@ export const CommonSelect = ({
   const optionValues = options.map((opt) => String(opt.value));
   const resolvedValue = optionValues.includes(valueStr)
     ? valueStr
-    : (options[0]?.value != null ? String(options[0].value) : "");
+    : options[0]?.value != null
+      ? String(options[0].value)
+      : "";
 
   return (
     <div
@@ -58,7 +60,11 @@ export const CommonSelect = ({
       {label !== undefined && (
         <Label
           htmlFor={selectId}
-          className={cn("text-sm font-medium", !vertical && "shrink-0", labelClassName)}
+          className={cn(
+            "text-sm font-medium",
+            !vertical && "shrink-0",
+            labelClassName
+          )}
         >
           {label}
         </Label>
@@ -71,7 +77,7 @@ export const CommonSelect = ({
         <SelectTrigger id={selectId} className={triggerClassName}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[280px] overflow-y-auto">
           {options.map((opt) => (
             <SelectItem key={String(opt.value)} value={String(opt.value)}>
               {opt.label}
