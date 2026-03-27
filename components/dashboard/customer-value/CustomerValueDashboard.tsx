@@ -13,11 +13,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type { AcmsTeamListItem } from "@/types/interfaces/acms";
-import {
-  getAcmsProjects,
-  getAcmsProjectsList,
-  getAcmsTeams,
-} from "@/lib/api/acms";
+import { getAcmsProjects, getAcmsTeams } from "@/lib/api/acms";
 import { buildProjectSelectOptions } from "@/lib/utils/customer-value";
 import type { CommonSelectOption } from "@/components/ui/common-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,15 +65,13 @@ export function CustomerValueDashboard() {
   const [performanceSelectedDate, setPerformanceSelectedDate] = useState<Date>(
     () => new Date()
   );
+  const [performanceSelectedProjectId, setPerformanceSelectedProjectId] =
+    useState<string>(ALL_VALUE);
+  const [performanceNameFilter, setPerformanceNameFilter] = useState<string>("");
 
   const { data: projectsResponse } = useQuery({
     queryKey: QUERY_KEYS.CUSTOMER_VALUE.ACMS_PROJECTS,
     queryFn: getAcmsProjects,
-  });
-
-  const { data: filterProjectsResponse } = useQuery({
-    queryKey: QUERY_KEYS.CUSTOMER_VALUE.ACMS_PROJECTS_LIST,
-    queryFn: getAcmsProjectsList,
   });
 
   const { data: teamsResponse } = useQuery({
@@ -86,17 +80,35 @@ export function CustomerValueDashboard() {
   });
 
   const projects = projectsResponse?.projects?.data ?? [];
-  const filterProjects = filterProjectsResponse?.projects?.data ?? [];
   const teams = teamsResponse?.teams ?? [];
 
   const projectOptions: CommonSelectOption[] = useMemo(
     () =>
       buildProjectSelectOptions(
-        filterProjects,
+        projects,
         ALL_VALUE,
         t("customerValue.filterAll")
       ),
-    [filterProjects, t]
+    [projects, t]
+  );
+
+  const performanceProjectOptions: CommonSelectOption[] = useMemo(
+    () => [
+      { value: ALL_VALUE, label: t("customerValue.filterAll") },
+      ...projects.map((project) => {
+        const hasBacklogMapping =
+          project.backlog_project_id != null &&
+          String(project.backlog_project_id).trim() !== "";
+
+        return {
+          value: String(project.id),
+          label: hasBacklogMapping
+            ? project.name
+            : `${project.name} (chưa mapping backlog)`,
+        };
+      }),
+    ],
+    [projects, t]
   );
 
   const teamOptions: CommonSelectOption[] = useMemo(
@@ -142,6 +154,12 @@ export function CustomerValueDashboard() {
   }, []);
   const handlePerformanceSelectedDateChange = useCallback((value: Date) => {
     setPerformanceSelectedDate(value);
+  }, []);
+  const handlePerformanceProjectChange = useCallback((value: string) => {
+    setPerformanceSelectedProjectId(value);
+  }, []);
+  const handlePerformanceNameFilterChange = useCallback((value: string) => {
+    setPerformanceNameFilter(value);
   }, []);
 
   const { from, to } = useMemo(
@@ -193,8 +211,13 @@ export function CustomerValueDashboard() {
               onPeriodModeChange={handlePerformancePeriodModeChange}
               selectedDate={performanceSelectedDate}
               onSelectedDateChange={handlePerformanceSelectedDateChange}
+              selectedProjectId={performanceSelectedProjectId}
+              onProjectChange={handlePerformanceProjectChange}
               selectedTeamId={selectedTeamId}
               onTeamChange={handleTeamChange}
+              nameFilter={performanceNameFilter}
+              onNameFilterChange={handlePerformanceNameFilterChange}
+              projectOptions={performanceProjectOptions}
               teamOptions={teamOptions}
               periodOptions={periodOptions}
             />
@@ -217,8 +240,9 @@ export function CustomerValueDashboard() {
           <PerformanceMemberTab
             periodMode={performancePeriodMode}
             selectedDate={performanceSelectedDate}
-            selectedProjectId={ALL_VALUE}
+            selectedProjectId={performanceSelectedProjectId}
             selectedTeamId={selectedTeamId}
+            nameFilter={performanceNameFilter}
             from={performanceFrom}
             to={performanceTo}
             projects={projects}

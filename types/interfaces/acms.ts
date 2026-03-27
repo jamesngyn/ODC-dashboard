@@ -36,6 +36,10 @@ export interface AcmsSkill {
 export interface AcmsDayScheduleItem {
   work_date: string;
   total_daily_report: number;
+  total_daily_report_by_project: {
+    project_id: number;
+    total_daily_report: number;
+  }[];
   daily_report_effort: number;
   allocate_effort: number;
   actual_effort: number;
@@ -131,7 +135,7 @@ export interface AcmsProject {
   name: string;
   code: string;
   status: string;
-  backlog_project_id: string | null;
+  backlog_project_id: string | number | null;
   parent_id: number | null;
   division_id: number;
   team_id: number;

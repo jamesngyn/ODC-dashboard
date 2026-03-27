@@ -50,7 +50,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (projectsWithBacklog.length === 0 || backlogProjectId != null) return;
-    setBacklogProjectId(projectsWithBacklog[0].backlog_project_id);
+    setBacklogProjectId(String(projectsWithBacklog[0].backlog_project_id));
   }, [projectsWithBacklog, backlogProjectId, setBacklogProjectId]);
 
   const handleProjectChange = (value: string) => {

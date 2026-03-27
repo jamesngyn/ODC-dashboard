@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { QUERY_KEYS } from "@/constants/common";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { TaskStatus } from "@/types/enums/common";
 import type { AcmsProject, AcmsResource } from "@/types/interfaces/acms";
-import type { BacklogIssue, BacklogUser } from "@/types/interfaces/common";
-import type { PerformanceMember } from "@/types/interfaces/customer-value";
+import type { BacklogIssue } from "@/types/interfaces/common";
 import { getAcmsResources, type AcmsResourcesParams } from "@/lib/api/acms";
 import {
   getBacklogIssueTypes,
@@ -18,8 +16,11 @@ import {
   getBacklogStatuses,
   getBacklogTasksByActualEndDateRange,
 } from "@/lib/api/backlog";
-import { getPointFromIssue, getReEstimateEffortFromIssue } from "@/lib/utils";
-import { useBacklogProjectId } from "@/hooks/useBacklogProjectId";
+import {
+  cn,
+  getPointFromIssue,
+  getReEstimateEffortFromIssue,
+} from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -27,8 +28,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CommonTable } from "@/components/ui/common-table";
-import type { TableColumn } from "@/components/ui/common-table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 import { ALL_VALUE, type PeriodMode } from "./BusyRateMemberFilters";
 
@@ -38,6 +45,45 @@ interface MemberAggregate {
   actualEffortHours: number;
   uspPoint: number;
 }
+
+type BacklogProjectMapping = {
+  acmsProjectId: number;
+  acmsProjectName: string;
+  acmsProjectCode: string;
+  backlogProjectId: string;
+};
+
+type ProjectPerformanceRow = {
+  key: string;
+  projectId: number;
+  projectName: string;
+  projectCode: string;
+  estimatedEffortHours: number;
+  reEstimateEffortHours: number;
+  actualEffortHours: number;
+  uspPoint: number;
+  performanceByEstimatePercent: number | null;
+  performanceByReEstimatePercent: number | null;
+  performanceByPoint: number | null;
+};
+
+type MemberPerformanceRow = {
+  key: string;
+  employeeId: string;
+  fullName: string;
+  email: string;
+  roles: string;
+  jobRank: string;
+  rankCoefficient: number;
+  projects: ProjectPerformanceRow[];
+  estimatedEffortHours: number;
+  reEstimateEffortHours: number;
+  actualEffortHours: number;
+  uspPoint: number;
+  performanceByEstimatePercent: number | null;
+  performanceByReEstimatePercent: number | null;
+  performanceByPoint: number | null;
+};
 
 function aggregateClosedIssuesByAssignee(
   issues: BacklogIssue[]
@@ -107,77 +153,91 @@ export interface PerformanceMemberTabProps {
   selectedDate: Date;
   selectedProjectId: string;
   selectedTeamId: string;
+  nameFilter: string;
   from: string;
   to: string;
   projects: AcmsProject[];
 }
 
 export function PerformanceMemberTab({
-  periodMode,
-  selectedDate,
   selectedProjectId,
   selectedTeamId,
+  nameFilter,
   from,
   to,
   projects,
 }: PerformanceMemberTabProps) {
   const { t } = useTranslation();
-  const { backlogProjectId } = useBacklogProjectId();
-  /** Hiển thị project đã chọn (ID hoặc "—" nếu chưa chọn). */
-  const projectName = backlogProjectId ?? "—";
+  const [expandedEmployeeKeys, setExpandedEmployeeKeys] = useState<Set<string>>(
+    new Set()
+  );
 
-  const { data: members = [], isLoading: isLoadingMembers } = useQuery({
-    queryKey: QUERY_KEYS.BACKLOG.PROJECT_MEMBERS(backlogProjectId ?? "config"),
-    queryFn: () => getBacklogProjectMembers(false, backlogProjectId),
-  });
+  const backlogProjectMappings = useMemo((): BacklogProjectMapping[] => {
+    return projects
+      .map((project) => ({
+        project,
+        normalizedBacklogProjectId:
+          project.backlog_project_id == null
+            ? ""
+            : String(project.backlog_project_id).trim(),
+      }))
+      .filter(({ normalizedBacklogProjectId }) => normalizedBacklogProjectId !== "")
+      .map((project) => ({
+        acmsProjectId: project.project.id,
+        acmsProjectName: project.project.name,
+        acmsProjectCode: project.project.code,
+        backlogProjectId: project.normalizedBacklogProjectId,
+      }));
+  }, [projects]);
 
-  const { data: statuses = [], isLoading: isLoadingStatuses } = useQuery({
-    queryKey: [
-      ...QUERY_KEYS.CUSTOMER_VALUE.BACKLOG_STATUSES,
-      backlogProjectId ?? "config",
-    ],
-    queryFn: () => getBacklogStatuses(backlogProjectId),
-  });
-
-  const closedStatusId = useMemo(() => {
-    const closed = statuses.find(
-      (s) => s.name?.toLowerCase() === TaskStatus.Closed.toLowerCase()
-    );
-    return closed?.id ?? null;
-  }, [statuses]);
-
-  const { data: issueTypes = [], isLoading: isLoadingIssueTypes } = useQuery({
-    queryKey: [...QUERY_KEYS.BACKLOG.ISSUE_TYPES, backlogProjectId ?? "config"],
-    queryFn: () => getBacklogIssueTypes(backlogProjectId),
-  });
-
-  const taskIssueTypeId = useMemo(() => {
-    const taskType = issueTypes.find(
-      (type) => type.name?.toLowerCase() === "task"
-    );
-    return taskType?.id ?? null;
-  }, [issueTypes]);
-
-  const { data: closedIssues = [], isLoading: isLoadingIssues } = useQuery({
-    queryKey: [
-      ...QUERY_KEYS.CUSTOMER_VALUE.PERFORMANCE_CLOSED_ISSUES(
-        closedStatusId != null ? [closedStatusId] : []
-      ),
-      backlogProjectId ?? "config",
-      from,
-      to,
-      taskIssueTypeId ?? "task",
-    ],
-    queryFn: () =>
-      getBacklogTasksByActualEndDateRange({
-        projectId: backlogProjectId,
-        statusIds: closedStatusId != null ? [closedStatusId] : undefined,
-        issueTypeIds: taskIssueTypeId != null ? [taskIssueTypeId] : undefined,
+  const { data: backlogProjectData = [], isLoading: isLoadingBacklogData } =
+    useQuery({
+      queryKey: [
+        ...QUERY_KEYS.CUSTOMER_VALUE.PERFORMANCE_CLOSED_ISSUES([]),
+        "all-backlog-projects",
         from,
         to,
-      }),
-    enabled: closedStatusId != null && taskIssueTypeId != null,
-  });
+        backlogProjectMappings.map((p) => p.acmsProjectId).join(","),
+      ],
+      enabled: backlogProjectMappings.length > 0,
+      queryFn: async () =>
+        Promise.all(
+          backlogProjectMappings.map(async (mapping) => {
+            const [members, statuses, issueTypes] = await Promise.all([
+              getBacklogProjectMembers(false, mapping.backlogProjectId),
+              getBacklogStatuses(mapping.backlogProjectId),
+              getBacklogIssueTypes(mapping.backlogProjectId),
+            ]);
+
+            const closedStatusId =
+              statuses.find(
+                (status) =>
+                  status.name?.toLowerCase() === TaskStatus.Closed.toLowerCase()
+              )?.id ?? null;
+            const taskIssueTypeId =
+              issueTypes.find(
+                (issueType) => issueType.name?.toLowerCase() === "task"
+              )?.id ?? null;
+
+            const issues =
+              closedStatusId != null && taskIssueTypeId != null
+                ? await getBacklogTasksByActualEndDateRange({
+                    projectId: mapping.backlogProjectId,
+                    statusIds: [closedStatusId],
+                    issueTypeIds: [taskIssueTypeId],
+                    from,
+                    to,
+                  })
+                : [];
+
+            return {
+              mapping,
+              members,
+              issues,
+            };
+          })
+        ),
+    });
 
   const acmsResourceParams = useMemo((): AcmsResourcesParams => {
     const base: AcmsResourcesParams = {
@@ -187,14 +247,11 @@ export function PerformanceMemberTab({
       page: 1,
       limit: 1000,
     };
-    if (selectedProjectId !== ALL_VALUE) {
-      base.project_id = selectedProjectId;
-    }
     if (selectedTeamId !== ALL_VALUE) {
       base["team_ids[]"] = [Number(selectedTeamId)];
     }
     return base;
-  }, [from, to, selectedProjectId, selectedTeamId]);
+  }, [from, to, selectedTeamId]);
 
   const { data: acmsResponse, isLoading: isLoadingAcms } = useQuery({
     queryKey: [
@@ -204,7 +261,6 @@ export function PerformanceMemberTab({
       "month",
       1,
       1000,
-      selectedProjectId,
       selectedTeamId,
     ],
     queryFn: () => getAcmsResources(acmsResourceParams),
@@ -222,179 +278,239 @@ export function PerformanceMemberTab({
     return map;
   }, [acmsResponse]);
 
-  const aggregatesByAssigneeId = useMemo(
-    () => aggregateClosedIssuesByAssignee(closedIssues),
-    [closedIssues]
-  );
+  const employeeRows = useMemo((): MemberPerformanceRow[] => {
+    const mappingByAcmsProjectId = new Map<number, BacklogProjectMapping>();
+    for (const mapping of backlogProjectMappings) {
+      mappingByAcmsProjectId.set(mapping.acmsProjectId, mapping);
+    }
 
-  /** Hiển thị tất cả user từ Backlog; map roles, jobRank, rankCoefficient từ ACMS theo email; lọc theo project/team nếu chọn. */
-  const data = useMemo((): PerformanceMember[] => {
-    return members
-      .filter((user: BacklogUser) => {
-        const email = user.mailAddress?.trim() ?? "";
-        const acms = email ? acmsByEmail.get(email.toLowerCase()) : undefined;
-        // Loại bỏ tất cả user không mapping được với dữ liệu ACMS
-        if (!acms) {
-          return false;
-        }
-        if (selectedProjectId !== ALL_VALUE) {
-          const project = projects.find(
-            (p) => String(p.id) === selectedProjectId
-          );
-          if (project && acms.project !== project.name) return false;
-        }
-        if (selectedTeamId !== ALL_VALUE) {
-          if (String(acms.team?.id) !== selectedTeamId) return false;
-        }
-        return true;
-      })
-      .map((user: BacklogUser) => {
-        const email = user.mailAddress?.trim() ?? "";
-        const acms = email ? acmsByEmail.get(email.toLowerCase()) : undefined;
+    const backlogDataByAcmsProjectId = new Map<
+      number,
+      {
+        issueAggregateByAssigneeId: Map<number, MemberAggregate>;
+        memberIdByEmail: Map<string, number>;
+      }
+    >();
 
-        const role = acms?.position?.name ?? "-";
-        const jobRank = acms?.level?.name ?? "-";
-        const rankCoefficient = acms?.level?.coefficient ?? 1;
+    for (const projectData of backlogProjectData) {
+      const memberIdByEmail = new Map<string, number>();
+      for (const member of projectData.members) {
+        const normalizedEmail = member.mailAddress?.trim().toLowerCase();
+        if (!normalizedEmail) continue;
+        memberIdByEmail.set(normalizedEmail, member.id);
+      }
 
-        const agg = aggregatesByAssigneeId.get(user.id) ?? {
+      backlogDataByAcmsProjectId.set(projectData.mapping.acmsProjectId, {
+        issueAggregateByAssigneeId: aggregateClosedIssuesByAssignee(
+          projectData.issues
+        ),
+        memberIdByEmail,
+      });
+    }
+
+    const memberRows: MemberPerformanceRow[] = [];
+    const acmsMembers = Array.from(acmsByEmail.values());
+
+    for (const acmsMember of acmsMembers) {
+      if (
+        selectedTeamId !== ALL_VALUE &&
+        String(acmsMember.team?.id) !== selectedTeamId
+      ) {
+        continue;
+      }
+
+      const participatingProjectIds = new Set<number>();
+
+      for (const allocate of acmsMember.allocates ?? []) {
+        if (mappingByAcmsProjectId.has(allocate.project_id)) {
+          participatingProjectIds.add(allocate.project_id);
+        }
+      }
+
+      if (acmsMember.project) {
+        const fallbackMapping = backlogProjectMappings.find(
+          (mapping) => mapping.acmsProjectName === acmsMember.project
+        );
+        if (fallbackMapping)
+          participatingProjectIds.add(fallbackMapping.acmsProjectId);
+      }
+
+      const normalizedEmail = acmsMember.email?.trim().toLowerCase() ?? "";
+
+      const rankCoefficient = acmsMember.level?.coefficient ?? 1;
+      const projectRows: ProjectPerformanceRow[] = [];
+
+      for (const projectId of Array.from(participatingProjectIds)) {
+        const mapping = mappingByAcmsProjectId.get(projectId);
+        if (!mapping) continue;
+
+        const backlogData = backlogDataByAcmsProjectId.get(projectId);
+        const backlogMemberId = normalizedEmail
+          ? backlogData?.memberIdByEmail.get(normalizedEmail)
+          : undefined;
+        const aggregate =
+          backlogMemberId != null
+            ? backlogData?.issueAggregateByAssigneeId.get(backlogMemberId)
+            : undefined;
+        const safeAggregate: MemberAggregate = aggregate ?? {
           estimatedEffortHours: 0,
           reEstimateEffortHours: 0,
           actualEffortHours: 0,
           uspPoint: 0,
         };
 
-        const perfByEst = buildPerformanceByEstimate(
-          agg.estimatedEffortHours,
-          agg.actualEffortHours,
-          rankCoefficient
-        );
-        const perfByReEst = buildPerformanceByReEstimate(
-          agg.reEstimateEffortHours,
-          agg.actualEffortHours,
-          rankCoefficient
-        );
-        const perfByPoint = buildPerformanceByPoint(
-          agg.uspPoint,
-          agg.actualEffortHours,
-          rankCoefficient
-        );
+        projectRows.push({
+          key: `${acmsMember.user_id}-${projectId}`,
+          projectId,
+          projectName: mapping.acmsProjectName,
+          projectCode: mapping.acmsProjectCode || "-",
+          estimatedEffortHours: safeAggregate.estimatedEffortHours,
+          reEstimateEffortHours: safeAggregate.reEstimateEffortHours,
+          actualEffortHours: safeAggregate.actualEffortHours,
+          uspPoint: safeAggregate.uspPoint,
+          performanceByEstimatePercent: buildPerformanceByEstimate(
+            safeAggregate.estimatedEffortHours,
+            safeAggregate.actualEffortHours,
+            rankCoefficient
+          ),
+          performanceByReEstimatePercent: buildPerformanceByReEstimate(
+            safeAggregate.reEstimateEffortHours,
+            safeAggregate.actualEffortHours,
+            rankCoefficient
+          ),
+          performanceByPoint: buildPerformanceByPoint(
+            safeAggregate.uspPoint,
+            safeAggregate.actualEffortHours,
+            rankCoefficient
+          ),
+        });
+      }
+
+      const memberRow: MemberPerformanceRow = {
+        key: String(acmsMember.user_id),
+        employeeId: acmsMember.code ?? "-",
+        fullName: acmsMember.name ?? "-",
+        email: acmsMember.email ?? "-",
+        roles: acmsMember.position?.name ?? "-",
+        jobRank: acmsMember.level?.name ?? "-",
+        rankCoefficient,
+        projects: projectRows.sort((a, b) => a.projectName.localeCompare(b.projectName)),
+        estimatedEffortHours: 0,
+        reEstimateEffortHours: 0,
+        actualEffortHours: 0,
+        uspPoint: 0,
+        performanceByEstimatePercent: null,
+        performanceByReEstimatePercent: null,
+        performanceByPoint: null,
+      };
+
+      memberRows.push(memberRow);
+    }
+
+    const filteredMemberRows = memberRows
+      .map((memberRow) => {
+        const filteredProjects =
+          selectedProjectId === ALL_VALUE
+            ? memberRow.projects
+            : memberRow.projects.filter(
+                (project) => String(project.projectId) === selectedProjectId
+              );
 
         return {
-          employeeId: acms?.code ?? user.userId ?? "-",
-          fullName: user.name ?? "-",
-          roles: role,
-          jobRank,
-          rankCoefficient,
-          projectName,
-          estimatedEffortHours: agg.estimatedEffortHours,
-          reEstimateEffortHours: agg.reEstimateEffortHours,
-          actualEffortHours: agg.actualEffortHours,
-          uspPoint: agg.uspPoint,
-          performanceByEstimatePercent: perfByEst ?? 0,
-          performanceByReEstimatePercent: perfByReEst ?? 0,
-          performanceByPoint: perfByPoint ?? 0,
+          ...memberRow,
+          projects: filteredProjects,
         };
-      });
+      })
+      .filter((memberRow) => memberRow.projects.length > 0 || selectedProjectId === ALL_VALUE);
+
+    const keyword = nameFilter.trim().toLowerCase();
+    const nameFilteredRows = keyword
+      ? filteredMemberRows.filter((memberRow) => {
+          const candidates = [
+            memberRow.fullName,
+            memberRow.employeeId,
+            memberRow.email,
+          ]
+            .join(" ")
+            .toLowerCase();
+          return candidates.includes(keyword);
+        })
+      : filteredMemberRows;
+
+    const rows = nameFilteredRows.map((memberRow) => {
+      const estimatedEffortHours = memberRow.projects.reduce(
+        (sum, project) => sum + project.estimatedEffortHours,
+        0
+      );
+      const reEstimateEffortHours = memberRow.projects.reduce(
+        (sum, project) => sum + project.reEstimateEffortHours,
+        0
+      );
+      const actualEffortHours = memberRow.projects.reduce(
+        (sum, project) => sum + project.actualEffortHours,
+        0
+      );
+      const uspPoint = memberRow.projects.reduce(
+        (sum, project) => sum + project.uspPoint,
+        0
+      );
+
+      return {
+        ...memberRow,
+        projects: memberRow.projects,
+        estimatedEffortHours,
+        reEstimateEffortHours,
+        actualEffortHours,
+        uspPoint,
+        performanceByEstimatePercent: buildPerformanceByEstimate(
+          estimatedEffortHours,
+          actualEffortHours,
+          memberRow.rankCoefficient
+        ),
+        performanceByReEstimatePercent: buildPerformanceByReEstimate(
+          reEstimateEffortHours,
+          actualEffortHours,
+          memberRow.rankCoefficient
+        ),
+        performanceByPoint: buildPerformanceByPoint(
+          uspPoint,
+          actualEffortHours,
+          memberRow.rankCoefficient
+        ),
+      };
+    });
+
+    rows.sort((a, b) => a.employeeId.localeCompare(b.employeeId));
+    return rows;
   }, [
-    members,
     acmsByEmail,
-    aggregatesByAssigneeId,
-    projectName,
+    backlogProjectData,
+    backlogProjectMappings,
+    nameFilter,
+    projects,
     selectedProjectId,
     selectedTeamId,
-    projects,
   ]);
 
-  const columns = useMemo<TableColumn<PerformanceMember>[]>(
-    () => [
-      {
-        key: "employeeId",
-        header: t("customerValue.employeeId"),
-        accessor: (r: PerformanceMember) => r.employeeId,
-      },
-      {
-        key: "fullName",
-        header: t("customerValue.fullName"),
-        accessor: (r: PerformanceMember) => r.fullName,
-      },
-      {
-        key: "roles",
-        header: t("customerValue.roles"),
-        accessor: (r: PerformanceMember) => r.roles || "-",
-      },
-      {
-        key: "jobRank",
-        header: t("customerValue.jobRank"),
-        accessor: (r: PerformanceMember) => r.jobRank || "-",
-      },
-      {
-        key: "rankCoefficient",
-        header: t("customerValue.rankCoefficient"),
-        accessor: (r: PerformanceMember) =>
-          r.rankCoefficient != null
-            ? r.rankCoefficient.toFixed(2).replace(".", ",")
-            : "—",
-      },
-      {
-        key: "projectName",
-        header: t("customerValue.projectName"),
-        accessor: (r: PerformanceMember) => r.projectName,
-      },
-      {
-        key: "estimatedEffort",
-        header: t("customerValue.estimatedEffortHours"),
-        accessor: (r: PerformanceMember) => r.estimatedEffortHours,
-      },
-      {
-        key: "reEstimateEffort",
-        header: t("customerValue.reEstimateEffortHours"),
-        accessor: (r: PerformanceMember) => r.reEstimateEffortHours,
-      },
-      {
-        key: "actualEffort",
-        header: t("customerValue.actualEffortHours"),
-        accessor: (r: PerformanceMember) => r.actualEffortHours,
-      },
-      {
-        key: "uspPoint",
-        header: t("customerValue.uspPoint"),
-        accessor: (r: PerformanceMember) => r.uspPoint,
-      },
-      {
-        key: "perfByEstimate",
-        header: t("customerValue.performanceByEstimate"),
-        accessor: (r: PerformanceMember) =>
-          r.performanceByEstimatePercent > 0
-            ? r.performanceByEstimatePercent.toFixed(2).replace(".", ",") + "%"
-            : "—",
-      },
-      {
-        key: "perfByReEstimate",
-        header: t("customerValue.performanceByReEstimate"),
-        accessor: (r: PerformanceMember) =>
-          r.performanceByReEstimatePercent > 0
-            ? r.performanceByReEstimatePercent.toFixed(2).replace(".", ",") +
-              "%"
-            : "—",
-      },
-      {
-        key: "perfByPoint",
-        header: t("customerValue.performanceByPoint"),
-        accessor: (r: PerformanceMember) =>
-          r.performanceByPoint > 0
-            ? r.performanceByPoint.toFixed(3).replace(".", ",")
-            : "—",
-      },
-    ],
-    [t]
-  );
+  useEffect(() => {
+    setExpandedEmployeeKeys(new Set());
+  }, [from, to, selectedProjectId, selectedTeamId, nameFilter]);
 
-  const isLoading =
-    isLoadingMembers ||
-    isLoadingStatuses ||
-    isLoadingIssueTypes ||
-    isLoadingIssues ||
-    isLoadingAcms;
+  const handleToggleEmployee = (employeeKey: string) => {
+    setExpandedEmployeeKeys((previous) => {
+      const next = new Set(previous);
+      if (next.has(employeeKey)) next.delete(employeeKey);
+      else next.add(employeeKey);
+      return next;
+    });
+  };
+
+  const isLoading = isLoadingBacklogData || isLoadingAcms;
+  const formatNumber = (value: number) => value.toFixed(2);
+  const formatPercent = (value: number | null) =>
+    value == null ? "—" : `${value.toFixed(2).replace(".", ",")}%`;
+  const formatPoint = (value: number | null) =>
+    value == null ? "—" : value.toFixed(3).replace(".", ",");
 
   return (
     <Card className="border-0 bg-zinc-50/50 shadow-none dark:bg-zinc-900/30">
@@ -412,12 +528,195 @@ export function PerformanceMemberTab({
             <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <CommonTable<PerformanceMember>
-            data={data}
-            columns={columns}
-            getRowKey={(r) => `${r.employeeId}-${r.fullName}-${r.roles}`}
-            emptyMessage={t("customerValue.emptyTable")}
-          />
+          <div className="overflow-hidden rounded-xl border border-zinc-200/70 bg-white shadow-sm ring-1 ring-zinc-950/5 dark:border-zinc-800/70 dark:bg-zinc-950/30 dark:ring-zinc-50/10">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-zinc-200 dark:bg-zinc-900/60">
+                  <TableHead>{t("customerValue.employeeId")}</TableHead>
+                  <TableHead>{t("customerValue.fullName")}</TableHead>
+                  <TableHead>{t("customerValue.email")}</TableHead>
+                  <TableHead>{t("customerValue.roles")}</TableHead>
+                  <TableHead>{t("customerValue.jobRank")}</TableHead>
+                  <TableHead>{t("customerValue.rankCoefficient")}</TableHead>
+                  <TableHead>{t("customerValue.projectName")}</TableHead>
+                  <TableHead>{t("customerValue.projectId")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("customerValue.estimatedEffortHours")}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {t("customerValue.reEstimateEffortHours")}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {t("customerValue.actualEffortHours")}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {t("customerValue.uspPoint")}
+                  </TableHead>
+                  <TableHead>
+                    {t("customerValue.performanceByEstimate")}
+                  </TableHead>
+                  <TableHead>
+                    {t("customerValue.performanceByReEstimate")}
+                  </TableHead>
+                  <TableHead>{t("customerValue.performanceByPoint")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {employeeRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={15} className="h-20 text-center">
+                      {t("customerValue.emptyTable")}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  employeeRows.map((employeeRow, employeeIndex) => {
+                    const isExpanded = expandedEmployeeKeys.has(
+                      employeeRow.key
+                    );
+                    const isEvenEmployeeRow = employeeIndex % 2 === 0;
+                    return (
+                      <Fragment key={employeeRow.key}>
+                        <TableRow
+                          className={cn(
+                            isEvenEmployeeRow
+                              ? "bg-blue-50/90 dark:bg-blue-950/20"
+                              : "bg-indigo-50/40 dark:bg-indigo-950/10",
+                            "font-medium"
+                          )}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleToggleEmployee(employeeRow.key)
+                                }
+                                disabled={employeeRow.projects.length === 0}
+                                aria-expanded={isExpanded}
+                                className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-zinc-100 disabled:opacity-50"
+                              >
+                                <ChevronDown
+                                  className={cn(
+                                    "h-4 w-4 transition-transform",
+                                    isExpanded && "rotate-180"
+                                  )}
+                                />
+                              </button>
+                              <span>{employeeRow.employeeId}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{employeeRow.fullName}</TableCell>
+                          <TableCell>{employeeRow.email}</TableCell>
+                          <TableCell>{employeeRow.roles}</TableCell>
+                          <TableCell>{employeeRow.jobRank}</TableCell>
+                          <TableCell>
+                            {employeeRow.rankCoefficient
+                              .toFixed(2)
+                              .replace(".", ",")}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            —
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            —
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatNumber(employeeRow.estimatedEffortHours)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatNumber(employeeRow.reEstimateEffortHours)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatNumber(employeeRow.actualEffortHours)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatNumber(employeeRow.uspPoint)}
+                          </TableCell>
+                          <TableCell>
+                            {formatPercent(
+                              employeeRow.performanceByEstimatePercent
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {formatPercent(
+                              employeeRow.performanceByReEstimatePercent
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {formatPoint(employeeRow.performanceByPoint)}
+                          </TableCell>
+                        </TableRow>
+
+                        {isExpanded &&
+                          employeeRow.projects.map(
+                            (projectRow, projectIndex) => (
+                              <TableRow
+                                key={projectRow.key}
+                                className={cn(
+                                  projectIndex % 2 === 0
+                                    ? "bg-zinc-50/80 dark:bg-zinc-900/25"
+                                    : "bg-white dark:bg-zinc-950/10"
+                                )}
+                              >
+                                <TableCell className="text-muted-foreground border-l-2 border-zinc-200 pl-8">
+                                  {employeeRow.employeeId}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  —
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  —
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  —
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  —
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  —
+                                </TableCell>
+                                <TableCell>{projectRow.projectName}</TableCell>
+                                <TableCell>{projectRow.projectCode}</TableCell>
+                                <TableCell className="text-right">
+                                  {formatNumber(
+                                    projectRow.estimatedEffortHours
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {formatNumber(
+                                    projectRow.reEstimateEffortHours
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {formatNumber(projectRow.actualEffortHours)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {formatNumber(projectRow.uspPoint)}
+                                </TableCell>
+                                <TableCell>
+                                  {formatPercent(
+                                    projectRow.performanceByEstimatePercent
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {formatPercent(
+                                    projectRow.performanceByReEstimatePercent
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {formatPoint(projectRow.performanceByPoint)}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          )}
+                      </Fragment>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

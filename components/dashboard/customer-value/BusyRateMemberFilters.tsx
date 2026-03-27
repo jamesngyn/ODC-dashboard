@@ -1,15 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import {
-  format,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
   endOfMonth,
+  endOfWeek,
+  format,
+  startOfMonth,
+  startOfWeek,
 } from "date-fns";
 import { vi } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
+
 import { CommonSelect } from "@/components/ui/common-select";
 import type { CommonSelectOption } from "@/components/ui/common-select";
 import CommonDatePicker from "@/components/ui/date-picker";
@@ -74,6 +75,18 @@ export function BusyRateMemberFilters({
   return (
     <div className="mb-4 flex flex-wrap items-end gap-4">
       <div className="flex flex-col gap-2">
+        <Label className="text-sm font-medium">
+          {t("customerValue.filterByName")}
+        </Label>
+        <Input
+          type="text"
+          placeholder={t("customerValue.filterByNamePlaceholder")}
+          value={nameFilter}
+          onChange={(e) => onNameFilterChange(e.target.value)}
+          className="h-9 w-[220px]"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
         <CommonSelect
           label={t("customerValue.period")}
           value={periodMode}
@@ -94,18 +107,7 @@ export function BusyRateMemberFilters({
           buttonClassName="w-full justify-start text-left font-normal min-w-[200px]"
         />
       </div>
-      <div className="flex flex-col gap-2">
-        <Label className="text-sm font-medium">
-          {t("customerValue.filterByName")}
-        </Label>
-        <Input
-          type="text"
-          placeholder={t("customerValue.filterByNamePlaceholder")}
-          value={nameFilter}
-          onChange={(e) => onNameFilterChange(e.target.value)}
-          className="h-9 w-[220px]"
-        />
-      </div>
+
       <div className="flex flex-col gap-2">
         <CommonSelect
           label={t("customerValue.projectName")}
