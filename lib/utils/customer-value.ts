@@ -26,11 +26,6 @@ export function allocateOverlapsPeriod(
   return a.start_date <= to && a.end_date >= from;
 }
 
-/**
- * Calendar effort (giờ): ưu tiên API (calendar_effort) khi không lọc project;
- * sau đó công thức số ngày làm việc (from–to) × 8h × (allocation/100).
- * Nếu filterByProjectId được truyền (và khác "all") thì chỉ tính allocation của project đó.
- */
 export function getCalendarEffortHours(
   resource: AcmsResource,
   from: string,
@@ -42,42 +37,37 @@ export function getCalendarEffortHours(
     filterByProjectId !== "" &&
     filterByProjectId !== "__all__";
 
-  if (
-    !filterByProject &&
-    resource.calendar_effort != null &&
-    Number.isFinite(resource.calendar_effort)
-  ) {
-    return resource.calendar_effort;
-  }
-  const allocates = resource.allocates;
-  if (allocates?.length) {
-    let inPeriod = allocates.filter((a) => allocateOverlapsPeriod(a, from, to));
-    if (filterByProject) {
-      inPeriod = inPeriod.filter(
-        (a) => String(a.project_id) === String(filterByProjectId)
-      );
-    }
-    const workingDays = getWorkingDaysInRange(from, to);
-    if (workingDays > 0 && inPeriod.length > 0) {
-      const totalAllocationPct = inPeriod.reduce(
-        (sum, a) => sum + (Number(a.allocation) ?? 0),
-        0
-      );
-      if (totalAllocationPct > 0) {
-        const hours =
-          workingDays * HOURS_PER_WORKING_DAY * (totalAllocationPct / 100);
-        return Math.round(hours * 10) / 10;
-      }
-    }
-    if (filterByProject) return 0;
-  }
-  if (filterByProject) return 0;
-  if (!resource.day_schedule?.length) return 0;
-  const fromSchedule = resource.day_schedule.reduce(
-    (sum, d) => sum + (d.allocate_effort ?? 0),
-    0
+  const allocates = resource.allocates ?? [];
+  if (!allocates.length) return 0;
+
+  const inPeriod = allocates.filter((a) =>
+    allocateOverlapsPeriod(a, from, to)
   );
-  return Math.round(fromSchedule * 10) / 10;
+  if (!inPeriod.length) return 0;
+
+  const filteredAllocates = filterByProject
+    ? inPeriod.filter(
+        (a) => String(a.project_id) === String(filterByProjectId)
+      )
+    : inPeriod;
+
+  if (!filteredAllocates.length) return 0;
+
+  const totalHours = filteredAllocates.reduce((sum, a) => {
+    const overlapFrom = from > a.start_date ? from : a.start_date;
+    const overlapTo = to < a.end_date ? to : a.end_date;
+    const workingDays = getWorkingDaysInRange(overlapFrom, overlapTo);
+    if (workingDays <= 0) return sum;
+
+    const allocationPct = Number(a.allocation) ?? 0;
+    if (allocationPct <= 0) return sum;
+
+    const hours =
+      workingDays * HOURS_PER_WORKING_DAY * (allocationPct / 100);
+    return sum + hours;
+  }, 0);
+
+  return Math.round(totalHours * 10) / 10;
 }
 
 /**
