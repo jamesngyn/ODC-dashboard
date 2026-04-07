@@ -34,7 +34,9 @@ export const getAcmsResources = (
 };
 
 export const getAcmsProjects = (): Promise<AcmsProjectsResponse> =>
-  sendGet(`${baseUrl}/projects`);
+  sendGet(`${baseUrl}/projects`, {
+    limit: 1000,
+  });
 
 export const getAcmsTeams = (): Promise<AcmsTeamsResponse> =>
   sendGet(`${baseUrl}/teams`, { is_active_project: 1 });
