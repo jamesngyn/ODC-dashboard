@@ -151,7 +151,7 @@
     "performanceMember": "Performance Member",
     "performanceMemberTitle": "Performance Member（クローズ済みタスク）",
     "busyRateMemberDescription": "ACMSからのデータ。日/週/月単位、Member・Project・Division（Hades 1, Hades 2, Faderless, Bonne）別。Effort Deviation = Actual Effort / Calendar Effort。",
-    "performanceMemberDescription": "Backlogからのデータ。Sprint / Milestone / Project / Division別。クローズ済みタスクで算出。Performance by Estimate = Estimated Effort / (Actual Effort × ランク係数)。Re-Estimate・Pointも同様。",
+    "performanceMemberDescription": "Backlogのクローズ済みタスクのデータ。Performance by Estimate = Estimated Effort / (Actual Effort × ランク係数)。Re-Estimate・Pointも同様。",
     "emptyTable": "データがありません",
     "projectNoData": "データなし",
     "filterAll": "すべて",

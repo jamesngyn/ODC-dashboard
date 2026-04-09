@@ -6,21 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { TaskStatus } from "@/types/enums/common";
 import type { AcmsProject, AcmsResource } from "@/types/interfaces/acms";
-import type { BacklogIssue } from "@/types/interfaces/common";
 import { getAcmsResources, type AcmsResourcesParams } from "@/lib/api/acms";
-import {
-  getBacklogIssueTypes,
-  getBacklogProjectMembers,
-  getBacklogStatuses,
-  getBacklogTasksByActualEndDateRange,
-} from "@/lib/api/backlog";
-import {
-  cn,
-  getPointFromIssue,
-  getReEstimateEffortFromIssue,
-} from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -38,115 +26,15 @@ import {
 } from "@/components/ui/table";
 
 import { ALL_VALUE, type PeriodMode } from "./BusyRateMemberFilters";
-
-interface MemberAggregate {
-  estimatedEffortHours: number;
-  reEstimateEffortHours: number;
-  actualEffortHours: number;
-  uspPoint: number;
-}
-
-type BacklogProjectMapping = {
-  acmsProjectId: number;
-  acmsProjectName: string;
-  acmsProjectCode: string;
-  backlogProjectId: string;
-};
-
-type ProjectPerformanceRow = {
-  key: string;
-  projectId: number;
-  projectName: string;
-  projectCode: string;
-  estimatedEffortHours: number;
-  reEstimateEffortHours: number;
-  actualEffortHours: number;
-  uspPoint: number;
-  performanceByEstimatePercent: number | null;
-  performanceByReEstimatePercent: number | null;
-  performanceByPoint: number | null;
-};
-
-type MemberPerformanceRow = {
-  key: string;
-  employeeId: string;
-  fullName: string;
-  email: string;
-  roles: string;
-  jobRank: string;
-  rankCoefficient: number;
-  projects: ProjectPerformanceRow[];
-  estimatedEffortHours: number;
-  reEstimateEffortHours: number;
-  actualEffortHours: number;
-  uspPoint: number;
-  performanceByEstimatePercent: number | null;
-  performanceByReEstimatePercent: number | null;
-  performanceByPoint: number | null;
-};
-
-function aggregateClosedIssuesByAssignee(
-  issues: BacklogIssue[]
-): Map<number, MemberAggregate> {
-  const map = new Map<number, MemberAggregate>();
-
-  for (const issue of issues) {
-    const assigneeId = issue.assignee?.id;
-    if (assigneeId == null) continue;
-
-    const estimated = Math.max(0, issue.estimatedHours ?? 0);
-    const reEstimate = getReEstimateEffortFromIssue(issue);
-    const actual = Math.max(0, issue.actualHours ?? 0);
-    const point = getPointFromIssue(issue);
-
-    const existing = map.get(assigneeId);
-    if (existing) {
-      existing.estimatedEffortHours += estimated;
-      existing.reEstimateEffortHours += reEstimate;
-      existing.actualEffortHours += actual;
-      existing.uspPoint += point;
-    } else {
-      map.set(assigneeId, {
-        estimatedEffortHours: estimated,
-        reEstimateEffortHours: reEstimate,
-        actualEffortHours: actual,
-        uspPoint: point,
-      });
-    }
-  }
-
-  return map;
-}
-
-function buildPerformanceByEstimate(
-  estimated: number,
-  actual: number,
-  rankCoeff: number
-): number | null {
-  const denom = actual * rankCoeff;
-  if (denom <= 0) return null;
-  return (estimated / denom) * 100;
-}
-
-function buildPerformanceByReEstimate(
-  reEstimate: number,
-  actual: number,
-  rankCoeff: number
-): number | null {
-  const denom = actual * rankCoeff;
-  if (denom <= 0) return null;
-  return (reEstimate / denom) * 100;
-}
-
-function buildPerformanceByPoint(
-  point: number,
-  actual: number,
-  rankCoeff: number
-): number | null {
-  const denom = actual * rankCoeff;
-  if (denom <= 0) return null;
-  return point / denom;
-}
+import { usePerformanceBacklogProjects } from "./performance-member/performance-member.backlog";
+import {
+  buildBacklogProjectMappings,
+  buildPerformanceMemberRows,
+} from "./performance-member/performance-member.rows";
+import type {
+  BacklogProjectMapping,
+  MemberPerformanceRow,
+} from "./performance-member/performance-member.types";
 
 export interface PerformanceMemberTabProps {
   periodMode: PeriodMode;
@@ -172,72 +60,22 @@ export function PerformanceMemberTab({
     new Set()
   );
 
-  const backlogProjectMappings = useMemo((): BacklogProjectMapping[] => {
-    return projects
-      .map((project) => ({
-        project,
-        normalizedBacklogProjectId:
-          project.backlog_project_id == null
-            ? ""
-            : String(project.backlog_project_id).trim(),
-      }))
-      .filter(({ normalizedBacklogProjectId }) => normalizedBacklogProjectId !== "")
-      .map((project) => ({
-        acmsProjectId: project.project.id,
-        acmsProjectName: project.project.name,
-        acmsProjectCode: project.project.code,
-        backlogProjectId: project.normalizedBacklogProjectId,
-      }));
-  }, [projects]);
+  const backlogProjectMappings = useMemo(
+    (): BacklogProjectMapping[] => buildBacklogProjectMappings(projects),
+    [projects]
+  );
 
-  const { data: backlogProjectData = [], isLoading: isLoadingBacklogData } =
-    useQuery({
-      queryKey: [
-        ...QUERY_KEYS.CUSTOMER_VALUE.PERFORMANCE_CLOSED_ISSUES([]),
-        "all-backlog-projects",
-        from,
-        to,
-        backlogProjectMappings.map((p) => p.acmsProjectId).join(","),
-      ],
-      enabled: backlogProjectMappings.length > 0,
-      queryFn: async () =>
-        Promise.all(
-          backlogProjectMappings.map(async (mapping) => {
-            const [members, statuses, issueTypes] = await Promise.all([
-              getBacklogProjectMembers(false, mapping.backlogProjectId),
-              getBacklogStatuses(mapping.backlogProjectId),
-              getBacklogIssueTypes(mapping.backlogProjectId),
-            ]);
-
-            const closedStatusId =
-              statuses.find(
-                (status) =>
-                  status.name?.toLowerCase() === TaskStatus.Closed.toLowerCase()
-              )?.id ?? null;
-            const taskIssueTypeId =
-              issueTypes.find(
-                (issueType) => issueType.name?.toLowerCase() === "task"
-              )?.id ?? null;
-
-            const issues =
-              closedStatusId != null && taskIssueTypeId != null
-                ? await getBacklogTasksByActualEndDateRange({
-                    projectId: mapping.backlogProjectId,
-                    statusIds: [closedStatusId],
-                    issueTypeIds: [taskIssueTypeId],
-                    from,
-                    to,
-                  })
-                : [];
-
-            return {
-              mapping,
-              members,
-              issues,
-            };
-          })
-        ),
-    });
+  const {
+    data: backlogProjectsResult,
+    isLoading: isLoadingBacklogData,
+    isError: isErrorBacklog,
+  } = usePerformanceBacklogProjects({
+    from,
+    to,
+    selectedProjectId,
+    mappings: backlogProjectMappings,
+    allValue: ALL_VALUE,
+  });
 
   const acmsResourceParams = useMemo((): AcmsResourcesParams => {
     const base: AcmsResourcesParams = {
@@ -278,219 +116,26 @@ export function PerformanceMemberTab({
     return map;
   }, [acmsResponse]);
 
-  const employeeRows = useMemo((): MemberPerformanceRow[] => {
-    const mappingByAcmsProjectId = new Map<number, BacklogProjectMapping>();
-    for (const mapping of backlogProjectMappings) {
-      mappingByAcmsProjectId.set(mapping.acmsProjectId, mapping);
-    }
-
-    const backlogDataByAcmsProjectId = new Map<
-      number,
-      {
-        issueAggregateByAssigneeId: Map<number, MemberAggregate>;
-        memberIdByEmail: Map<string, number>;
-      }
-    >();
-
-    for (const projectData of backlogProjectData) {
-      const memberIdByEmail = new Map<string, number>();
-      for (const member of projectData.members) {
-        const normalizedEmail = member.mailAddress?.trim().toLowerCase();
-        if (!normalizedEmail) continue;
-        memberIdByEmail.set(normalizedEmail, member.id);
-      }
-
-      backlogDataByAcmsProjectId.set(projectData.mapping.acmsProjectId, {
-        issueAggregateByAssigneeId: aggregateClosedIssuesByAssignee(
-          projectData.issues
-        ),
-        memberIdByEmail,
-      });
-    }
-
-    const memberRows: MemberPerformanceRow[] = [];
-    const acmsMembers = Array.from(acmsByEmail.values());
-
-    for (const acmsMember of acmsMembers) {
-      if (
-        selectedTeamId !== ALL_VALUE &&
-        String(acmsMember.team?.id) !== selectedTeamId
-      ) {
-        continue;
-      }
-
-      const participatingProjectIds = new Set<number>();
-
-      for (const allocate of acmsMember.allocates ?? []) {
-        if (mappingByAcmsProjectId.has(allocate.project_id)) {
-          participatingProjectIds.add(allocate.project_id);
-        }
-      }
-
-      if (acmsMember.project) {
-        const fallbackMapping = backlogProjectMappings.find(
-          (mapping) => mapping.acmsProjectName === acmsMember.project
-        );
-        if (fallbackMapping)
-          participatingProjectIds.add(fallbackMapping.acmsProjectId);
-      }
-
-      const normalizedEmail = acmsMember.email?.trim().toLowerCase() ?? "";
-
-      const rankCoefficient = acmsMember.level?.coefficient ?? 1;
-      const projectRows: ProjectPerformanceRow[] = [];
-
-      for (const projectId of Array.from(participatingProjectIds)) {
-        const mapping = mappingByAcmsProjectId.get(projectId);
-        if (!mapping) continue;
-
-        const backlogData = backlogDataByAcmsProjectId.get(projectId);
-        const backlogMemberId = normalizedEmail
-          ? backlogData?.memberIdByEmail.get(normalizedEmail)
-          : undefined;
-        const aggregate =
-          backlogMemberId != null
-            ? backlogData?.issueAggregateByAssigneeId.get(backlogMemberId)
-            : undefined;
-        const safeAggregate: MemberAggregate = aggregate ?? {
-          estimatedEffortHours: 0,
-          reEstimateEffortHours: 0,
-          actualEffortHours: 0,
-          uspPoint: 0,
-        };
-
-        projectRows.push({
-          key: `${acmsMember.user_id}-${projectId}`,
-          projectId,
-          projectName: mapping.acmsProjectName,
-          projectCode: mapping.acmsProjectCode || "-",
-          estimatedEffortHours: safeAggregate.estimatedEffortHours,
-          reEstimateEffortHours: safeAggregate.reEstimateEffortHours,
-          actualEffortHours: safeAggregate.actualEffortHours,
-          uspPoint: safeAggregate.uspPoint,
-          performanceByEstimatePercent: buildPerformanceByEstimate(
-            safeAggregate.estimatedEffortHours,
-            safeAggregate.actualEffortHours,
-            rankCoefficient
-          ),
-          performanceByReEstimatePercent: buildPerformanceByReEstimate(
-            safeAggregate.reEstimateEffortHours,
-            safeAggregate.actualEffortHours,
-            rankCoefficient
-          ),
-          performanceByPoint: buildPerformanceByPoint(
-            safeAggregate.uspPoint,
-            safeAggregate.actualEffortHours,
-            rankCoefficient
-          ),
-        });
-      }
-
-      const memberRow: MemberPerformanceRow = {
-        key: String(acmsMember.user_id),
-        employeeId: acmsMember.code ?? "-",
-        fullName: acmsMember.name ?? "-",
-        email: acmsMember.email ?? "-",
-        roles: acmsMember.position?.name ?? "-",
-        jobRank: acmsMember.level?.name ?? "-",
-        rankCoefficient,
-        projects: projectRows.sort((a, b) => a.projectName.localeCompare(b.projectName)),
-        estimatedEffortHours: 0,
-        reEstimateEffortHours: 0,
-        actualEffortHours: 0,
-        uspPoint: 0,
-        performanceByEstimatePercent: null,
-        performanceByReEstimatePercent: null,
-        performanceByPoint: null,
-      };
-
-      memberRows.push(memberRow);
-    }
-
-    const filteredMemberRows = memberRows
-      .map((memberRow) => {
-        const filteredProjects =
-          selectedProjectId === ALL_VALUE
-            ? memberRow.projects
-            : memberRow.projects.filter(
-                (project) => String(project.projectId) === selectedProjectId
-              );
-
-        return {
-          ...memberRow,
-          projects: filteredProjects,
-        };
-      })
-      .filter((memberRow) => memberRow.projects.length > 0 || selectedProjectId === ALL_VALUE);
-
-    const keyword = nameFilter.trim().toLowerCase();
-    const nameFilteredRows = keyword
-      ? filteredMemberRows.filter((memberRow) => {
-          const candidates = [
-            memberRow.fullName,
-            memberRow.employeeId,
-            memberRow.email,
-          ]
-            .join(" ")
-            .toLowerCase();
-          return candidates.includes(keyword);
-        })
-      : filteredMemberRows;
-
-    const rows = nameFilteredRows.map((memberRow) => {
-      const estimatedEffortHours = memberRow.projects.reduce(
-        (sum, project) => sum + project.estimatedEffortHours,
-        0
-      );
-      const reEstimateEffortHours = memberRow.projects.reduce(
-        (sum, project) => sum + project.reEstimateEffortHours,
-        0
-      );
-      const actualEffortHours = memberRow.projects.reduce(
-        (sum, project) => sum + project.actualEffortHours,
-        0
-      );
-      const uspPoint = memberRow.projects.reduce(
-        (sum, project) => sum + project.uspPoint,
-        0
-      );
-
-      return {
-        ...memberRow,
-        projects: memberRow.projects,
-        estimatedEffortHours,
-        reEstimateEffortHours,
-        actualEffortHours,
-        uspPoint,
-        performanceByEstimatePercent: buildPerformanceByEstimate(
-          estimatedEffortHours,
-          actualEffortHours,
-          memberRow.rankCoefficient
-        ),
-        performanceByReEstimatePercent: buildPerformanceByReEstimate(
-          reEstimateEffortHours,
-          actualEffortHours,
-          memberRow.rankCoefficient
-        ),
-        performanceByPoint: buildPerformanceByPoint(
-          uspPoint,
-          actualEffortHours,
-          memberRow.rankCoefficient
-        ),
-      };
-    });
-
-    rows.sort((a, b) => a.employeeId.localeCompare(b.employeeId));
-    return rows;
-  }, [
-    acmsByEmail,
-    backlogProjectData,
-    backlogProjectMappings,
-    nameFilter,
-    projects,
-    selectedProjectId,
-    selectedTeamId,
-  ]);
+  const employeeRows = useMemo(
+    (): MemberPerformanceRow[] =>
+      buildPerformanceMemberRows({
+        acmsByEmail,
+        backlogProjectsResult,
+        backlogProjectMappings,
+        selectedTeamId,
+        selectedProjectId,
+        allValue: ALL_VALUE,
+        nameFilter,
+      }),
+    [
+      acmsByEmail,
+      backlogProjectsResult,
+      backlogProjectMappings,
+      nameFilter,
+      selectedProjectId,
+      selectedTeamId,
+    ]
+  );
 
   useEffect(() => {
     setExpandedEmployeeKeys(new Set());

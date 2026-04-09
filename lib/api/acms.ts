@@ -35,7 +35,7 @@ export const getAcmsResources = (
 
 export const getAcmsProjects = (): Promise<AcmsProjectsResponse> =>
   sendGet(`${baseUrl}/projects`, {
-    limit: 300,
+    limit: 1000,
   });
 
 export const getAcmsTeams = (): Promise<AcmsTeamsResponse> =>

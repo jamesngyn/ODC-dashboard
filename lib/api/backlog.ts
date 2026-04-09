@@ -8,6 +8,7 @@ import {
 } from "@/types/enums/common";
 import {
   BacklogCategoryItem,
+  BacklogCustomField,
   BacklogIssue,
   BacklogIssueType,
   BacklogMilestone,
@@ -31,6 +32,46 @@ function getEffectiveProjectId(projectId?: string | null): string {
 }
 
 export const ACTUAL_END_DATE_FIELD_NAME = "Actual End-date";
+const BACKLOG_CUSTOM_FIELD_TYPE_DATE = 4;
+const ACTUAL_END_DATE_FIELD_ID_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+
+type ActualEndDateFieldIdCacheEntry = {
+  fieldId: number | null;
+  fetchedAtMs: number;
+};
+
+const actualEndDateFieldIdCache = new Map<string, ActualEndDateFieldIdCacheEntry>();
+
+export const getBacklogCustomFields = (
+  projectId?: string | null
+): Promise<BacklogCustomField[]> =>
+  sendGet(
+    `${BACKLOG_BASE_URL}/api/v2/projects/${getEffectiveProjectId(projectId)}/customFields`,
+    { apiKey: BACKLOG_API_KEY }
+  );
+
+export async function getBacklogActualEndDateCustomFieldId(
+  projectId?: string | null
+): Promise<number | null> {
+  const effectiveProjectId = getEffectiveProjectId(projectId);
+  const cacheKey = effectiveProjectId;
+  const now = Date.now();
+  const cached = actualEndDateFieldIdCache.get(cacheKey);
+  if (cached && now - cached.fetchedAtMs < ACTUAL_END_DATE_FIELD_ID_TTL_MS) {
+    return cached.fieldId;
+  }
+
+  const fields = await getBacklogCustomFields(effectiveProjectId);
+  const fieldId =
+    fields.find(
+      (f) =>
+        (f.name ?? "").trim() === ACTUAL_END_DATE_FIELD_NAME &&
+        f.typeId === BACKLOG_CUSTOM_FIELD_TYPE_DATE
+    )?.id ?? null;
+
+  actualEndDateFieldIdCache.set(cacheKey, { fieldId, fetchedAtMs: now });
+  return fieldId;
+}
 
 export function getActualEndDateFromIssue(issue: BacklogIssue): string | null {
   if (!issue.customFields?.length) return null;
@@ -65,13 +106,28 @@ export interface GetBacklogTasksByActualEndDateRangeOptions {
  * Lấy issues có custom field "Actual End-date" nằm trong [from, to]
  * theo các filter đầu vào.
  *
- * Lưu ý: Backlog API không hỗ trợ filter theo custom field dạng date range,
- * nên sẽ fetch issues theo các filter cơ bản rồi filter tại client.
+ * Ưu tiên filter server-side theo custom field Date (customField_{id}_min/max).
+ * Nếu project không có custom field Date "Actual End-date", fallback filter tại client.
  */
 export async function getBacklogTasksByActualEndDateRange(
   options: GetBacklogTasksByActualEndDateRangeOptions
 ): Promise<BacklogIssue[]> {
   const { projectId, statusIds, from, to, issueTypeIds } = options;
+
+  const actualEndDateFieldId = await getBacklogActualEndDateCustomFieldId(
+    projectId
+  );
+  if (actualEndDateFieldId != null) {
+    return getBacklogIssues({
+      projectId,
+      statusIds,
+      issueTypeIds,
+      customFieldDateRanges: [
+        { fieldId: actualEndDateFieldId, min: from, max: to },
+      ],
+    });
+  }
+
   const issues = await getBacklogIssues({ projectId, statusIds, issueTypeIds });
   const normalizedFrom = normalizeDateOnly(from);
   const normalizedTo = normalizeDateOnly(to);
@@ -232,6 +288,12 @@ export interface GetBacklogIssuesOptions {
   startDateSince?: string;
   /** Lọc issue có start date đến ngày (yyyy-MM-dd). */
   startDateUntil?: string;
+  /** Lọc theo custom field Date (customField_{id}_min/max). */
+  customFieldDateRanges?: {
+    fieldId: number;
+    min: string;
+    max: string;
+  }[];
 }
 
 /**
@@ -255,6 +317,7 @@ export const getBacklogIssues = async (
     parentChild: parentChildParam,
     startDateSince,
     startDateUntil,
+    customFieldDateRanges,
   } = options || {};
 
   if (Array.isArray(parentChildParam) && parentChildParam.length > 0) {
@@ -328,6 +391,12 @@ export const getBacklogIssues = async (
     }
     if (startDateUntil) {
       params.startDateUntil = startDateUntil;
+    }
+    if (customFieldDateRanges && customFieldDateRanges.length > 0) {
+      for (const range of customFieldDateRanges) {
+        params[`customField_${range.fieldId}_min`] = range.min;
+        params[`customField_${range.fieldId}_max`] = range.max;
+      }
     }
     return params;
   };

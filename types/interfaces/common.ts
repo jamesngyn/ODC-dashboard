@@ -106,3 +106,14 @@ export interface BacklogUser {
   mailAddress: string;
   lastLoginTime: string; // ISO 8601 string
 }
+
+/** Backlog Custom Field (GET /projects/:id/customFields) */
+export interface BacklogCustomField {
+  id: number;
+  projectId: number;
+  /** Backlog doc: typeId (Date = 4) */
+  typeId: number;
+  name: string;
+  description?: string;
+  required?: boolean;
+}
