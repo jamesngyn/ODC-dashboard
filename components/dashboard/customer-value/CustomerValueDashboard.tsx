@@ -27,6 +27,10 @@ import { BusyRateMemberTab } from "./BusyRateMemberTab";
 import { PerformanceMemberFilters } from "./PerformanceMemberFilters";
 import { PerformanceMemberTab } from "./PerformanceMemberTab";
 
+const PENDING_STATUS = 1;
+const SUCCESS_STATUS = 2;
+const REJECT_STATUS = 3;
+
 function getRangeFromPeriod(
   date: Date,
   period: PeriodMode
@@ -55,6 +59,9 @@ export function CustomerValueDashboard() {
   // BusyRate tab state
   const [periodMode, setPeriodMode] = useState<PeriodMode>("week");
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const [selectedStatus, setSelectedStatus] = useState<string>(
+    `${PENDING_STATUS},${SUCCESS_STATUS},${REJECT_STATUS}`
+  );
   const [selectedProjectId, setSelectedProjectId] = useState<string>(ALL_VALUE);
   const [selectedTeamId, setSelectedTeamId] = useState<string>(ALL_VALUE);
   const [nameFilter, setNameFilter] = useState<string>("");
@@ -134,8 +141,33 @@ export function CustomerValueDashboard() {
     [t]
   );
 
+  const statusOptions: CommonSelectOption[] = useMemo(
+    () => [
+      {
+        value: `${PENDING_STATUS},${SUCCESS_STATUS},${REJECT_STATUS}`,
+        label: t("customerValue.filterAll"),
+      },
+      {
+        value: String(PENDING_STATUS),
+        label: t("customerValue.resourceStatusPendingOnly"),
+      },
+      {
+        value: String(REJECT_STATUS),
+        label: t("customerValue.resourceStatusRejectedOnly"),
+      },
+      {
+        value: String(SUCCESS_STATUS),
+        label: t("customerValue.resourceStatusApprovedOnly"),
+      },
+    ],
+    [t]
+  );
+
   const handleProjectChange = useCallback((value: string) => {
     setSelectedProjectId(value);
+  }, []);
+  const handleStatusChange = useCallback((value: string) => {
+    setSelectedStatus(value);
   }, []);
   const handleTeamChange = useCallback((value: string) => {
     setSelectedTeamId(value);
@@ -191,12 +223,15 @@ export function CustomerValueDashboard() {
               onPeriodModeChange={handlePeriodModeChange}
               selectedDate={selectedDate}
               onSelectedDateChange={handleSelectedDateChange}
+              selectedStatus={selectedStatus}
+              onStatusChange={handleStatusChange}
               selectedProjectId={selectedProjectId}
               onProjectChange={handleProjectChange}
               selectedTeamId={selectedTeamId}
               onTeamChange={handleTeamChange}
               nameFilter={nameFilter}
               onNameFilterChange={handleNameFilterChange}
+              statusOptions={statusOptions}
               projectOptions={projectOptions}
               teamOptions={teamOptions}
               periodOptions={periodOptions}
@@ -228,6 +263,7 @@ export function CustomerValueDashboard() {
           <BusyRateMemberTab
             periodMode={periodMode}
             selectedDate={selectedDate}
+            selectedStatus={selectedStatus}
             selectedProjectId={selectedProjectId}
             selectedTeamId={selectedTeamId}
             nameFilter={nameFilter}

@@ -45,6 +45,7 @@ import { ALL_VALUE, type PeriodMode } from "./BusyRateMemberFilters";
 export interface BusyRateMemberTabProps {
   periodMode: PeriodMode;
   selectedDate: Date;
+  selectedStatus: string;
   selectedProjectId: string;
   selectedTeamId: string;
   nameFilter: string;
@@ -121,6 +122,7 @@ type EmployeeEffortRow = {
 export function BusyRateMemberTab({
   periodMode,
   selectedDate,
+  selectedStatus,
   selectedProjectId,
   selectedTeamId,
   nameFilter,
@@ -136,7 +138,7 @@ export function BusyRateMemberTab({
 
   useEffect(() => {
     setPage(1);
-  }, [from, to, selectedProjectId, selectedTeamId, debouncedName]);
+  }, [from, to, selectedStatus, selectedProjectId, selectedTeamId, debouncedName]);
 
   const resourceParams = useMemo((): AcmsResourcesParams => {
     const base: AcmsResourcesParams = {
@@ -146,6 +148,9 @@ export function BusyRateMemberTab({
       page,
       limit: 20,
     };
+    if (selectedStatus !== "2") {
+      base.status = selectedStatus;
+    }
     if (selectedProjectId !== ALL_VALUE) {
       base.project_id = selectedProjectId;
     }
@@ -161,6 +166,7 @@ export function BusyRateMemberTab({
     to,
     periodMode,
     page,
+    selectedStatus,
     selectedProjectId,
     selectedTeamId,
     debouncedName,
@@ -177,6 +183,7 @@ export function BusyRateMemberTab({
       to,
       periodMode,
       page,
+      selectedStatus,
       selectedProjectId,
       selectedTeamId,
       debouncedName,
@@ -359,7 +366,7 @@ export function BusyRateMemberTab({
 
   useEffect(() => {
     setExpandedEmployeeKeys(new Set());
-  }, [from, to, selectedProjectId, selectedTeamId, debouncedName]);
+  }, [from, to, selectedStatus, selectedProjectId, selectedTeamId, debouncedName]);
 
   const handleToggleEmployee = (employeeKey: string) => {
     setExpandedEmployeeKeys((prev) => {

@@ -27,12 +27,15 @@ export interface BusyRateMemberFiltersProps {
   onPeriodModeChange: (value: PeriodMode) => void;
   selectedDate: Date;
   onSelectedDateChange: (date: Date) => void;
+  selectedStatus: string;
+  onStatusChange: (value: string) => void;
   selectedProjectId: string;
   onProjectChange: (value: string) => void;
   selectedTeamId: string;
   onTeamChange: (value: string) => void;
   nameFilter: string;
   onNameFilterChange: (value: string) => void;
+  statusOptions: CommonSelectOption[];
   projectOptions: CommonSelectOption[];
   teamOptions: CommonSelectOption[];
   periodOptions: CommonSelectOption[];
@@ -43,12 +46,15 @@ export function BusyRateMemberFilters({
   onPeriodModeChange,
   selectedDate,
   onSelectedDateChange,
+  selectedStatus,
+  onStatusChange,
   selectedProjectId,
   onProjectChange,
   selectedTeamId,
   onTeamChange,
   nameFilter,
   onNameFilterChange,
+  statusOptions,
   projectOptions,
   teamOptions,
   periodOptions,
@@ -117,6 +123,17 @@ export function BusyRateMemberFilters({
           placeholder={t("customerValue.filterAll")}
           triggerClassName="w-[220px]"
           vertical
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <CommonSelect
+          label={t("customerValue.resourceStatus")}
+          value={selectedStatus}
+          onValueChange={onStatusChange}
+          options={statusOptions}
+          triggerClassName="w-[220px]"
+          vertical
+          searchable={false}
         />
       </div>
       <div className="flex flex-col gap-2">

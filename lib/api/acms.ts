@@ -18,6 +18,7 @@ export interface AcmsResourcesParams {
   page?: number;
   limit?: number;
   project_id?: number | string;
+  status?: string;
   /** Tìm theo tên (name/code/email). Gửi sau khi debounce. */
   name?: string;
   "team_ids[]"?: number[];
